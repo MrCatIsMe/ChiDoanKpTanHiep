@@ -41,6 +41,8 @@ export default function App() {
     }
   });
 
+  const [viewingMode, setViewingMode] = useState<'dashboard' | 'landing'>('dashboard');
+
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [members, setMembers] = useState<DoanVien[]>(initialData.doanVien);
   const [activities, setActivities] = useState<HoatDong[]>(initialData.hoatDong);
@@ -286,6 +288,7 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('qd_th_current_user');
+    setViewingMode('landing');
     showNotification('Đã đăng xuất hệ thống thành công!', 'success');
   };
 
@@ -293,6 +296,7 @@ export default function App() {
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     localStorage.setItem('qd_th_current_user', JSON.stringify(user));
+    setViewingMode('dashboard');
     showNotification(`Đăng nhập thành công với vai trò ${user.role === 'admin' ? 'Bí thư Chi đoàn' : 'Đoàn viên'}`, 'success');
   };
 
@@ -344,19 +348,23 @@ export default function App() {
       )}
 
       {/* CORE ROUTING ENGINE */}
-      {!currentUser ? (
+      {!currentUser || viewingMode === 'landing' ? (
         // Public landing page view
         <LandingPage 
           onOpenLogin={() => setShowLoginModal(true)} 
           activities={activities}
           members={members}
           proofs={proofs}
+          currentUser={currentUser}
+          onGoToDashboard={() => setViewingMode('dashboard')}
+          onLogout={handleLogout}
         />
       ) : currentUser.role === 'admin' ? (
         // Authorized Admin Panel View
         <AdminDashboard 
           currentUser={currentUser}
           onLogout={handleLogout}
+          onGoToLanding={() => setViewingMode('landing')}
           members={members}
           setMembers={setMembers}
           activities={activities}
@@ -374,6 +382,7 @@ export default function App() {
         <MemberDashboard 
           currentUser={currentUser}
           onLogout={handleLogout}
+          onGoToLanding={() => setViewingMode('landing')}
           members={members}
           setMembers={setMembers}
           activities={activities}

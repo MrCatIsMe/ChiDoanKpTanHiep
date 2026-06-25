@@ -6,12 +6,13 @@ import {
   User as UserIcon, Calendar, FileCheck, History, Award, MapPin, 
   Clock, LogOut, CheckCircle2, AlertTriangle, HelpCircle, ChevronRight,
   Camera, Upload, FileText, Check, ShieldAlert, BookOpen, Star, Phone, Mail,
-  Lock, Unlock
+  Lock, Unlock, Edit, Home
 } from 'lucide-react';
 
 interface MemberDashboardProps {
   currentUser: User;
   onLogout: () => void;
+  onGoToLanding?: () => void;
   members: DoanVien[];
   setMembers: React.Dispatch<React.SetStateAction<DoanVien[]>>;
   activities: HoatDong[];
@@ -23,6 +24,7 @@ interface MemberDashboardProps {
 export default function MemberDashboard({
   currentUser,
   onLogout,
+  onGoToLanding,
   members,
   setMembers,
   activities,
@@ -52,6 +54,82 @@ export default function MemberDashboard({
   // Simulated TimeMark metadata
   const [simulatedTime, setSimulatedTime] = useState('');
   const [simulatedLocation, setSimulatedLocation] = useState('');
+
+  // Profile edit states
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    hoTen: '',
+    ngaySinh: '',
+    gioiTinh: 'Nam' as 'Nam' | 'Nữ',
+    sdt: '',
+    email: '',
+    truong: '',
+    lop: '',
+    diaChi: '',
+    anhDaiDien: '',
+    chiDoan: ''
+  });
+
+  const handleStartEdit = () => {
+    setEditForm({
+      hoTen: currentMember.hoTen,
+      ngaySinh: currentMember.ngaySinh || '',
+      gioiTinh: currentMember.gioiTinh || 'Nam',
+      sdt: currentMember.sdt || '',
+      email: currentMember.email || '',
+      truong: currentMember.truong || '',
+      lop: currentMember.lop || '',
+      diaChi: currentMember.diaChi || '',
+      anhDaiDien: currentMember.anhDaiDien || '',
+      chiDoan: currentMember.chiDoan || ''
+    });
+    setIsEditing(true);
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      // Compress with 400x400 size for avatar
+      const compressedBase64 = await compressAndResizeImage(file, 400, 400, 0.7);
+      setEditForm(prev => ({ ...prev, anhDaiDien: compressedBase64 }));
+      onShowNotification('Đã nạp ảnh đại diện mới!', 'success');
+    } catch (err) {
+      console.error('Failed to compress avatar image:', err);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Url = event.target?.result as string;
+        setEditForm(prev => ({ ...prev, anhDaiDien: base64Url }));
+        onShowNotification('Đã tải ảnh đại diện lên!', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm.hoTen.trim()) {
+      onShowNotification('Họ và tên không được để trống!', 'error');
+      return;
+    }
+    
+    const updatedMember: DoanVien = {
+      ...currentMember,
+      hoTen: editForm.hoTen.trim(),
+      ngaySinh: editForm.ngaySinh,
+      gioiTinh: editForm.gioiTinh,
+      sdt: editForm.sdt.trim(),
+      email: editForm.email.trim(),
+      truong: editForm.truong,
+      lop: editForm.lop.trim(),
+      diaChi: editForm.diaChi.trim(),
+      anhDaiDien: editForm.anhDaiDien
+    };
+
+    setMembers(prev => prev.map(m => m.id === currentMember.id ? updatedMember : m));
+    setIsEditing(false);
+    onShowNotification('Cập nhật hồ sơ cá nhân thành công!', 'success');
+  };
 
   // Handle local image file upload (converts to base64 for localstorage persistence)
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -190,13 +268,25 @@ export default function MemberDashboard({
             <p className="text-[10px] text-blue-100">{currentMember.truong}</p>
           </div>
         </div>
-        <button
-          onClick={onLogout}
-          className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-all cursor-pointer"
-          title="Đăng xuất"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {onGoToLanding && (
+            <button
+              onClick={onGoToLanding}
+              className="px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer flex items-center gap-1 border border-white/10"
+              title="Về Trang chủ"
+            >
+              <Home className="h-3.5 w-3.5 text-blue-100" />
+              <span className="text-[10px] font-bold">Trang chủ</span>
+            </button>
+          )}
+          <button
+            onClick={onLogout}
+            className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-all cursor-pointer"
+            title="Đăng xuất"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* SIDEBAR FOR DESKTOP */}
@@ -286,7 +376,16 @@ export default function MemberDashboard({
         </nav>
 
         {/* Logout bottom */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950 text-xs">
+        <div className="p-4 border-t border-slate-800 bg-slate-950 text-xs space-y-2">
+          {onGoToLanding && (
+            <button
+              onClick={onGoToLanding}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 bg-emerald-750 hover:bg-emerald-700 text-white font-bold transition-all cursor-pointer border border-emerald-700/40"
+            >
+              <Home className="h-4 w-4 text-emerald-200" />
+              Về Trang chủ (Landing)
+            </button>
+          )}
           <button
             onClick={onLogout}
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-slate-800 text-red-400 font-bold transition-all cursor-pointer"
@@ -373,42 +472,252 @@ export default function MemberDashboard({
               </div>
             </div>
 
-            {/* Profile Info Details Card */}
-            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm space-y-4">
-              <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wider">Thông tin hồ sơ Đoàn viên</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                
-                <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="font-semibold text-slate-400">Mã đoàn viên:</span>
-                  <span className="font-mono font-bold block text-slate-800 text-sm">{currentMember.maDoanVien}</span>
+            {/* Profile Info Details Card or Edit Form */}
+            {isEditing ? (
+              <form onSubmit={handleSaveProfile} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm space-y-5 animate-fade-in">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wider">Chỉnh sửa thông tin cá nhân</h3>
+                  <span className="text-[10px] text-slate-400">Mã đoàn viên: <strong className="font-mono">{currentMember.maDoanVien}</strong></span>
                 </div>
 
-                <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="font-semibold text-slate-400">Chi đoàn địa bàn dân cư:</span>
-                  <span className="font-bold block text-slate-800">{currentMember.chiDoan}</span>
+                {/* Avatar Edit Section */}
+                <div className="flex flex-col sm:flex-row items-center gap-5 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div className="relative group shrink-0">
+                    <img
+                      src={editForm.anhDaiDien || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'}
+                      alt="Avatar preview"
+                      className="h-20 w-20 rounded-full object-cover border-2 border-[#005691] shadow"
+                      referrerPolicy="no-referrer"
+                    />
+                    <label htmlFor="avatar-file-upload" className="absolute inset-0 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold">
+                      Tải ảnh
+                    </label>
+                    <input
+                      id="avatar-file-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                  </div>
+                  <div className="text-center sm:text-left space-y-1">
+                    <h4 className="text-xs font-bold text-slate-800">Ảnh đại diện của bạn</h4>
+                    <p className="text-[10px] text-slate-400 max-w-sm">
+                      Tải lên một bức chân dung rõ mặt để hiển thị trên danh sách và báo cáo kết quả rèn luyện. Định dạng PNG, JPG, JPEG.
+                    </p>
+                    <label
+                      htmlFor="avatar-file-upload"
+                      className="inline-block mt-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm cursor-pointer transition-colors"
+                    >
+                      Thay đổi ảnh đại diện
+                    </label>
+                  </div>
                 </div>
 
-                <div className="space-y-1 col-span-1 sm:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="font-semibold text-slate-400">Trường THPT lớp 12 học bạ:</span>
-                  <span className="font-bold block text-slate-800">{currentMember.truong}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  {/* Họ và tên */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-slate-400 uppercase tracking-wider">Họ và tên *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.hoTen}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, hoTen: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                      placeholder="Nguyễn Văn A"
+                    />
+                  </div>
+
+                  {/* Ngày sinh */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-slate-400 uppercase tracking-wider">Ngày sinh</label>
+                    <input
+                      type="date"
+                      value={editForm.ngaySinh}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, ngaySinh: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                    />
+                  </div>
+
+                  {/* Giới tính */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-slate-400 uppercase tracking-wider">Giới tính</label>
+                    <select
+                      value={editForm.gioiTinh}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, gioiTinh: e.target.value as 'Nam' | 'Nữ' }))}
+                      className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                    >
+                      <option value="Nam">Nam</option>
+                      <option value="Nữ">Nữ</option>
+                    </select>
+                  </div>
+
+                  {/* Lớp */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-slate-400 uppercase tracking-wider">Lớp học</label>
+                    <input
+                      type="text"
+                      value={editForm.lop}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, lop: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                      placeholder="12A1"
+                    />
+                  </div>
+
+                  {/* Trường */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-slate-400 uppercase tracking-wider">Trường THPT lớp 12 học bạ</label>
+                    <select
+                      value={editForm.truong}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, truong: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                    >
+                      {TRUONG_LIST.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Chi đoàn */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-slate-400 uppercase tracking-wider">Chi đoàn địa bàn dân cư</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={editForm.chiDoan}
+                      className="w-full rounded-lg border border-slate-100 bg-slate-50 py-2 px-3 text-xs text-slate-500 cursor-not-allowed"
+                      title="Chi đoàn địa bàn được ấn định bởi Ban chỉ huy Chi đoàn"
+                    />
+                  </div>
+
+                  {/* Số điện thoại */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-slate-400 uppercase tracking-wider">Số điện thoại di động</label>
+                    <input
+                      type="tel"
+                      value={editForm.sdt}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, sdt: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                      placeholder="0901234567"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-slate-400 uppercase tracking-wider">Địa chỉ Email</label>
+                    <input
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                      placeholder="abc@example.com"
+                    />
+                  </div>
+
+                  {/* Địa chỉ */}
+                  <div className="space-y-1 col-span-1 sm:col-span-2">
+                    <label className="block font-bold text-slate-400 uppercase tracking-wider">Địa chỉ thường trú liên lạc</label>
+                    <textarea
+                      rows={2}
+                      value={editForm.diaChi}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, diaChi: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                      placeholder="Số 123, đường ĐT743, khu phố Tân Hiệp, phường Tân Đông Hiệp..."
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2 col-span-1 sm:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="font-semibold text-slate-400 block">Địa chỉ thường trú liên lạc:</span>
-                  <span className="font-medium block text-slate-700">{currentMember.diaChi || 'Chưa cập nhật cụ thể'}</span>
+                {/* Form Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-50">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 shadow-sm cursor-pointer transition-colors"
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-[#005691] hover:bg-[#004270] px-5 py-2 text-xs font-bold text-white shadow-md cursor-pointer transition-colors"
+                  >
+                    Lưu thay đổi
+                  </button>
                 </div>
-
-                <div className="space-y-1">
-                  <span className="font-semibold text-slate-400 block">Số điện thoại di động:</span>
-                  <span className="font-bold text-slate-700">{currentMember.sdt}</span>
+              </form>
+            ) : (
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                  <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wider">Thông tin hồ sơ Đoàn viên</h3>
+                  <button
+                    id="member-profile-edit-btn"
+                    onClick={handleStartEdit}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 px-3 py-1.5 text-xs font-bold text-[#005691] transition-all cursor-pointer"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                    Chỉnh sửa
+                  </button>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  
+                  <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <span className="font-semibold text-slate-400">Họ và tên:</span>
+                    <span className="font-bold block text-slate-800 text-sm">{currentMember.hoTen}</span>
+                  </div>
 
-                <div className="space-y-1">
-                  <span className="font-semibold text-slate-400 block">Địa chỉ Email:</span>
-                  <span className="font-bold text-slate-700">{currentMember.email}</span>
+                  <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <span className="font-semibold text-slate-400">Mã đoàn viên:</span>
+                    <span className="font-mono font-bold block text-slate-800 text-sm">{currentMember.maDoanVien}</span>
+                  </div>
+
+                  <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <span className="font-semibold text-slate-400">Ngày sinh:</span>
+                    <span className="font-bold block text-slate-800">{currentMember.ngaySinh || 'Chưa cập nhật'}</span>
+                  </div>
+
+                  <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <span className="font-semibold text-slate-400">Giới tính:</span>
+                    <span className="font-bold block text-slate-800">{currentMember.gioiTinh || 'Chưa cập nhật'}</span>
+                  </div>
+
+                  <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <span className="font-semibold text-slate-400">Lớp học:</span>
+                    <span className="font-bold block text-slate-800">{currentMember.lop || 'Chưa cập nhật'}</span>
+                  </div>
+
+                  <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <span className="font-semibold text-slate-400">Chi đoàn địa bàn dân cư:</span>
+                    <span className="font-bold block text-slate-800">{currentMember.chiDoan}</span>
+                  </div>
+
+                  <div className="space-y-1 col-span-1 sm:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <span className="font-semibold text-slate-400">Trường THPT lớp 12 học bạ:</span>
+                    <span className="font-bold block text-slate-800">{currentMember.truong}</span>
+                  </div>
+
+                  <div className="space-y-2 col-span-1 sm:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <span className="font-semibold text-slate-400 block">Địa chỉ thường trú liên lạc:</span>
+                    <span className="font-medium block text-slate-700">{currentMember.diaChi || 'Chưa cập nhật cụ thể'}</span>
+                  </div>
+
+                  <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <span className="font-semibold text-slate-400 block">Số điện thoại di động:</span>
+                    <span className="font-bold text-slate-700 block">{currentMember.sdt || 'Chưa cập nhật'}</span>
+                  </div>
+
+                  <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <span className="font-semibold text-slate-400 block">Địa chỉ Email:</span>
+                    <span className="font-bold text-slate-700 block">{currentMember.email || 'Chưa cập nhật'}</span>
+                  </div>
+
+                  <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100 col-span-1 sm:col-span-2">
+                    <span className="font-semibold text-slate-400 block">Trạng thái đoàn viên:</span>
+                    <span className="inline-block rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 mt-1">
+                      {currentMember.trangThai || 'Đang hoạt động'}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Quick action buttons for mobile */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">

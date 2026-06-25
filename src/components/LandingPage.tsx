@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { HoatDong, DoanVien, MinhChung } from '../types';
+import { HoatDong, DoanVien, MinhChung, User } from '../types';
 import { 
   Users, School, Calendar, FileCheck, ShieldAlert, CheckCircle2, 
   MapPin, Clock, ArrowRight, BookOpen, Star, Info, Mail, Phone, ExternalLink,
-  Search, Trophy, Medal, Filter, Award, ChevronDown, ChevronUp
+  Search, Trophy, Medal, Filter, Award, ChevronDown, ChevronUp, LogOut
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -11,9 +11,20 @@ interface LandingPageProps {
   activities: HoatDong[];
   members: DoanVien[];
   proofs: MinhChung[];
+  currentUser: User | null;
+  onGoToDashboard: () => void;
+  onLogout: () => void;
 }
 
-export default function LandingPage({ onOpenLogin, activities, members, proofs }: LandingPageProps) {
+export default function LandingPage({ 
+  onOpenLogin, 
+  activities, 
+  members, 
+  proofs,
+  currentUser,
+  onGoToDashboard,
+  onLogout
+}: LandingPageProps) {
   
   // Leaderboard states
   const [selectedSchool, setSelectedSchool] = useState<string>('All');
@@ -117,15 +128,40 @@ export default function LandingPage({ onOpenLogin, activities, members, proofs }
               </button>
             </nav>
 
-            {/* Login button */}
-            <button
-              id="landing-login-btn"
-              onClick={onOpenLogin}
-              className="rounded-lg bg-[#005691] hover:bg-[#004270] text-white px-4 py-2 text-xs font-semibold shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              Đăng nhập hệ thống
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
+            {/* Login / Dashboard buttons */}
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline-block text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1.5 rounded-lg max-w-[150px] truncate" title={currentUser.email}>
+                  {currentUser.role === 'admin' ? 'Bí thư' : 'Đoàn viên'}
+                </span>
+                <button
+                  id="landing-dashboard-btn"
+                  onClick={onGoToDashboard}
+                  className="rounded-lg bg-[#005691] hover:bg-[#004270] text-white px-3 py-2 text-xs font-bold shadow-md active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  {currentUser.role === 'admin' ? 'Vào Quản Trị' : 'Vào Cá Nhân'}
+                  <ExternalLink className="h-3 w-3" />
+                </button>
+                <button
+                  id="landing-logout-btn"
+                  onClick={onLogout}
+                  className="rounded-lg bg-red-50 hover:bg-red-100 text-red-600 p-2 text-xs font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer border border-red-100"
+                  title="Đăng xuất"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="hidden md:inline">Đăng xuất</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                id="landing-login-btn"
+                onClick={onOpenLogin}
+                className="rounded-lg bg-[#005691] hover:bg-[#004270] text-white px-4 py-2 text-xs font-semibold shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                Đăng nhập hệ thống
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -166,14 +202,25 @@ export default function LandingPage({ onOpenLogin, activities, members, proofs }
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
-                <button
-                  id="hero-login-btn"
-                  onClick={onOpenLogin}
-                  className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-[#005691] to-[#0284c7] hover:from-[#004b7f] hover:to-[#0274b0] px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-blue-900/15 hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
-                >
-                  Đăng nhập hệ thống
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+                {currentUser ? (
+                  <button
+                    id="hero-dashboard-btn"
+                    onClick={onGoToDashboard}
+                    className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-teal-900/15 hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    {currentUser.role === 'admin' ? 'Vào Bảng Quản Trị' : 'Vào Hồ Sơ Cá Nhân'}
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button
+                    id="hero-login-btn"
+                    onClick={onOpenLogin}
+                    className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-[#005691] to-[#0284c7] hover:from-[#004b7f] hover:to-[#0274b0] px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-blue-900/15 hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    Đăng nhập hệ thống
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   id="hero-view-btn"
                   onClick={() => scrollToSection('hoat-dong')}

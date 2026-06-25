@@ -8,12 +8,13 @@ import {
   Plus, Edit, Trash2, Search, Filter, Download, Upload, Check, X, 
   TrendingUp, Award, MapPin, Clock, CalendarIcon, CheckCircle2, AlertTriangle, HelpCircle,
   LogOut, Phone, Mail, ChevronRight, UserPlus, FileSpreadsheet, Eye, Info, School,
-  Lock, Unlock, Printer, FileText
+  Lock, Unlock, Printer, FileText, Home
 } from 'lucide-react';
 
 interface AdminDashboardProps {
   currentUser: User;
   onLogout: () => void;
+  onGoToLanding?: () => void;
   members: DoanVien[];
   setMembers: React.Dispatch<React.SetStateAction<DoanVien[]>>;
   activities: HoatDong[];
@@ -30,6 +31,7 @@ interface AdminDashboardProps {
 export default function AdminDashboard({
   currentUser,
   onLogout,
+  onGoToLanding,
   members,
   setMembers,
   activities,
@@ -791,13 +793,25 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
             </p>
           </div>
         </div>
-        <button
-          onClick={onLogout}
-          className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-all cursor-pointer"
-          title="Đăng xuất"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {onGoToLanding && (
+            <button
+              onClick={onGoToLanding}
+              className="px-2 py-1.5 rounded-lg bg-blue-900/60 hover:bg-blue-850 text-white transition-all cursor-pointer flex items-center gap-1 border border-blue-800/30"
+              title="Về Trang chủ"
+            >
+              <Home className="h-3.5 w-3.5 text-blue-200" />
+              <span className="text-[10px] font-bold">Trang chủ</span>
+            </button>
+          )}
+          <button
+            onClick={onLogout}
+            className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-all cursor-pointer"
+            title="Đăng xuất"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* MOBILE SIDEBAR DRAWER PANEL OVERLAY */}
@@ -945,10 +959,22 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
             </nav>
 
             {/* Logout bottom drawer */}
-            <div className="p-4 border-t border-slate-800 bg-slate-950 text-xs">
+            <div className="p-4 border-t border-slate-800 bg-slate-950 text-xs space-y-2">
+              {onGoToLanding && (
+                <button
+                  onClick={() => {
+                    onGoToLanding();
+                    setIsMobileSidebarOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 bg-blue-900/50 hover:bg-blue-850 text-white font-bold transition-all cursor-pointer border border-blue-800/40"
+                >
+                  <Home className="h-4 w-4 text-blue-300" />
+                  Về Trang chủ (Landing)
+                </button>
+              )}
               <button
                 onClick={onLogout}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-slate-800 text-red-400 font-bold transition-all cursor-pointer animate-pulse"
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-slate-800 text-red-400 font-bold transition-all cursor-pointer"
               >
                 <LogOut className="h-4 w-4" />
                 Đăng xuất hệ thống
@@ -1077,7 +1103,17 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
         </nav>
 
         {/* Footer logout */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950 text-xs">
+        <div className="p-4 border-t border-slate-800 bg-slate-950 text-xs space-y-2">
+          {onGoToLanding && (
+            <button
+              id="admin-home-sidebar-btn"
+              onClick={onGoToLanding}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 bg-[#005691] hover:bg-[#004270] text-white font-bold transition-all cursor-pointer border border-blue-800/40"
+            >
+              <Home className="h-4 w-4 text-blue-200" />
+              Về Trang chủ (Landing)
+            </button>
+          )}
           <button
             id="admin-logout-sidebar-btn"
             onClick={onLogout}
