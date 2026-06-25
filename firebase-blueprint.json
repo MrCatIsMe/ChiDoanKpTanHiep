@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "doanVien": {
+      "title": "DoanVien",
+      "description": "Đoàn viên học sinh trực thuộc chi đoàn",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "maDoanVien": { "type": "string" },
+        "hoTen": { "type": "string" },
+        "ngaySinh": { "type": "string" },
+        "gioiTinh": { "type": "string", "enum": ["Nam", "Nữ"] },
+        "sdt": { "type": "string" },
+        "email": { "type": "string" },
+        "truong": { "type": "string" },
+        "lop": { "type": "string" },
+        "chiDoan": { "type": "string" },
+        "diaChi": { "type": "string" },
+        "anhDaiDien": { "type": "string" },
+        "trangThai": { "type": "string", "enum": ["Đang hoạt động", "Tạm ngưng", "Trưởng thành Đoàn"] },
+        "diemTichLuy": { "type": "number" }
+      },
+      "required": ["id", "maDoanVien", "hoTen", "email"]
+    },
+    "hoatDong": {
+      "title": "HoatDong",
+      "description": "Hoạt động sinh hoạt hè, lao động, tình nguyện",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ten": { "type": "string" },
+        "anh": { "type": "string" },
+        "moTa": { "type": "string" },
+        "thoiGian": { "type": "string" },
+        "diaDiem": { "type": "string" },
+        "hanNop": { "type": "string" },
+        "diemCong": { "type": "number" },
+        "loai": { "type": "string" }
+      },
+      "required": ["id", "ten", "thoiGian", "loai"]
+    },
+    "minhChung": {
+      "title": "MinhChung",
+      "description": "Minh chứng tham gia hoạt động nộp bởi học sinh",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "doanVienId": { "type": "string" },
+        "hoatDongId": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "moTa": { "type": "string" },
+        "status": { "type": "string", "enum": ["Chờ duyệt", "Đã duyệt", "Không đạt"] },
+        "createdAt": { "type": "string" },
+        "approvedAt": { "type": "string" },
+        "rejectedReason": { "type": "string" },
+        "timeMark": { "type": "string" },
+        "locationMark": { "type": "string" }
+      },
+      "required": ["id", "doanVienId", "hoatDongId", "imageUrl", "status"]
+    },
+    "user": {
+      "title": "User",
+      "description": "Tài khoản người dùng đăng nhập hệ thống",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "member"] },
+        "doanVienId": { "type": "string" }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "truongHoc": {
+      "title": "TruongHoc",
+      "description": "Danh sách các trường học THPT trực thuộc quản lý đoàn viên",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tenTruong": { "type": "string" },
+        "diaChi": { "type": "string" },
+        "hieuTruong": { "type": "string" },
+        "sdtLienHe": { "type": "string" },
+        "moTa": { "type": "string" }
+      },
+      "required": ["id", "tenTruong", "diaChi"]
+    }
+  },
+  "firestore": {
+    "/doanVien/{id}": {
+      "schema": { "$ref": "#/entities/doanVien" },
+      "description": "Collection storing student members"
+    },
+    "/hoatDong/{id}": {
+      "schema": { "$ref": "#/entities/hoatDong" },
+      "description": "Collection storing youth activities"
+    },
+    "/minhChung/{id}": {
+      "schema": { "$ref": "#/entities/minhChung" },
+      "description": "Collection storing evidence submissions"
+    },
+    "/users/{id}": {
+      "schema": { "$ref": "#/entities/user" },
+      "description": "Collection storing users"
+    },
+    "/truongHoc/{id}": {
+      "schema": { "$ref": "#/entities/truongHoc" },
+      "description": "Collection storing schools"
+    }
+  }
+}
