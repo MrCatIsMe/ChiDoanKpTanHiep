@@ -1,5 +1,5 @@
 {
-  "name": "Quản lý Đoàn viên Khối 12",
+  "name": "Trang Quản Lý Chi Đoàn Tân Hiệp",
   "description": "Hệ thống quản lý đoàn viên học sinh khối 12 thuộc nhiều trường THPT cho Chi đoàn khu phố",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
