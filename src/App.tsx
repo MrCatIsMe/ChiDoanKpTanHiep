@@ -6,6 +6,7 @@ import AdminDashboard from './components/AdminDashboard';
 import MemberDashboard from './components/MemberDashboard';
 import AuthModal from './components/AuthModal';
 import { CheckCircle2, AlertCircle, X, Sparkles, Database } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   dbGetDoanVien, 
   dbSaveDoanVien, 
@@ -317,96 +318,132 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans overflow-x-hidden">
       
-      {/* GLOBAL TOAST NOTIFICATION CONTAINER */}
-      {notification && (
-        <div 
-          id="global-toast-notification"
-          className={`fixed top-4 right-4 z-50 flex items-center gap-3 rounded-xl p-4 shadow-xl border transition-all max-w-sm animate-fade-in ${
-            notification.type === 'success'
-              ? 'bg-emerald-550 bg-emerald-50 text-emerald-800 border-emerald-100'
-              : 'bg-red-50 text-red-800 border-red-100'
-          }`}
-        >
-          {notification.type === 'success' ? (
-            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-          ) : (
-            <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
-          )}
-          <div className="flex-1 text-xs font-semibold">
-            {notification.message}
-          </div>
-          <button 
-            id="close-toast-btn"
-            onClick={() => setNotification(null)}
-            className="text-slate-400 hover:text-slate-600 cursor-pointer shrink-0"
+      {/* GLOBAL TOAST NOTIFICATION CONTAINER WITH MOTION */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div 
+            id="global-toast-notification"
+            initial={{ opacity: 0, y: -20, x: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95, transition: { duration: 0.2 } }}
+            className={`fixed top-4 right-4 z-50 flex items-center gap-3 rounded-xl p-4 shadow-xl border max-w-sm ${
+              notification.type === 'success'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-100'
+                : 'bg-red-50 text-red-800 border-red-100'
+            }`}
           >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
+            {notification.type === 'success' ? (
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+            )}
+            <div className="flex-1 text-xs font-semibold">
+              {notification.message}
+            </div>
+            <button 
+              id="close-toast-btn"
+              onClick={() => setNotification(null)}
+              className="text-slate-400 hover:text-slate-600 cursor-pointer shrink-0 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* CORE ROUTING ENGINE */}
-      {!currentUser || viewingMode === 'landing' ? (
-        // Public landing page view
-        <LandingPage 
-          onOpenLogin={() => setShowLoginModal(true)} 
-          activities={activities}
-          members={members}
-          proofs={proofs}
-          currentUser={currentUser}
-          onGoToDashboard={() => setViewingMode('dashboard')}
-          onLogout={handleLogout}
-        />
-      ) : currentUser.role === 'admin' ? (
-        // Authorized Admin Panel View
-        <AdminDashboard 
-          currentUser={currentUser}
-          onLogout={handleLogout}
-          onGoToLanding={() => setViewingMode('landing')}
-          members={members}
-          setMembers={setMembers}
-          activities={activities}
-          setActivities={setActivities}
-          proofs={proofs}
-          setProofs={setProofs}
-          truongHoc={truongHoc}
-          setTruongHoc={setTruongHoc}
-          onShowNotification={showNotification}
-          users={users}
-          setUsers={setUsers}
-        />
-      ) : (
-        // Authorized Student Member View
-        <MemberDashboard 
-          currentUser={currentUser}
-          onLogout={handleLogout}
-          onGoToLanding={() => setViewingMode('landing')}
-          members={members}
-          setMembers={setMembers}
-          activities={activities}
-          proofs={proofs}
-          setProofs={setProofs}
-          onShowNotification={showNotification}
-        />
-      )}
+      {/* CORE ROUTING ENGINE WITH ANIMATE PRESENCE */}
+      <AnimatePresence mode="wait">
+        {!currentUser || viewingMode === 'landing' ? (
+          // Public landing page view
+          <motion.div
+            key="landing"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            className="flex-1 flex flex-col"
+          >
+            <LandingPage 
+              onOpenLogin={() => setShowLoginModal(true)} 
+              activities={activities}
+              members={members}
+              proofs={proofs}
+              currentUser={currentUser}
+              onGoToDashboard={() => setViewingMode('dashboard')}
+              onLogout={handleLogout}
+            />
+          </motion.div>
+        ) : currentUser.role === 'admin' ? (
+          // Authorized Admin Panel View
+          <motion.div
+            key="admin-dashboard"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            className="flex-1 flex flex-col"
+          >
+            <AdminDashboard 
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              onGoToLanding={() => setViewingMode('landing')}
+              members={members}
+              setMembers={setMembers}
+              activities={activities}
+              setActivities={setActivities}
+              proofs={proofs}
+              setProofs={setProofs}
+              truongHoc={truongHoc}
+              setTruongHoc={setTruongHoc}
+              onShowNotification={showNotification}
+              users={users}
+              setUsers={setUsers}
+            />
+          </motion.div>
+        ) : (
+          // Authorized Student Member View
+          <motion.div
+            key="member-dashboard"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            className="flex-1 flex flex-col"
+          >
+            <MemberDashboard 
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              onGoToLanding={() => setViewingMode('landing')}
+              members={members}
+              setMembers={setMembers}
+              activities={activities}
+              proofs={proofs}
+              setProofs={setProofs}
+              onShowNotification={showNotification}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* RENDER AUTHENTICATION MODAL */}
-      {showLoginModal && (
-        <AuthModal 
-          onLogin={handleLogin}
-          users={users}
-          doanViens={members}
-          onClose={() => setShowLoginModal(false)}
-          onRegister={(newMember, newUser) => {
-            setMembers(prev => [newMember, ...prev]);
-            setUsers(prev => [newUser, ...prev]);
-            showNotification(`Đăng ký thành công Đoàn viên mới: ${newMember.hoTen}!`, 'success');
-          }}
-          truongHoc={truongHoc}
-        />
-      )}
+      {/* RENDER AUTHENTICATION MODAL WITH ANIMATE PRESENCE */}
+      <AnimatePresence>
+        {showLoginModal && (
+          <AuthModal 
+            onLogin={handleLogin}
+            users={users}
+            doanViens={members}
+            onClose={() => setShowLoginModal(false)}
+            onRegister={(newMember, newUser) => {
+              setMembers(prev => [newMember, ...prev]);
+              setUsers(prev => [newUser, ...prev]);
+              showNotification(`Đăng ký thành công Đoàn viên mới: ${newMember.hoTen}!`, 'success');
+            }}
+            truongHoc={truongHoc}
+          />
+        )}
+      </AnimatePresence>
 
     </div>
   );

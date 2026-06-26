@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
+import { motion, AnimatePresence } from 'motion/react';
+import AnimatedCounter from './AnimatedCounter';
 import { DoanVien, HoatDong, MinhChung, User, TruongHoc } from '../types';
 import { TRUONG_LIST, CHI_DOAN_LIST } from '../data/mockData';
 import { compressAndResizeImage } from '../utils/image';
@@ -8,8 +10,12 @@ import {
   Plus, Edit, Trash2, Search, Filter, Download, Upload, Check, X, 
   TrendingUp, Award, MapPin, Clock, CalendarIcon, CheckCircle2, AlertTriangle, HelpCircle,
   LogOut, Phone, Mail, ChevronRight, UserPlus, FileSpreadsheet, Eye, Info, School,
-  Lock, Unlock, Printer, FileText, Home
+  Lock, Unlock, Printer, FileText, Home, KeyRound
 } from 'lucide-react';
+
+const ANONYMOUS_AVATAR = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="%23f1f5f9"/><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="%23cbd5e1"/></svg>';
+const FEMALE_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+const MALE_AVATAR = 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80';
 
 interface AdminDashboardProps {
   currentUser: User;
@@ -45,7 +51,7 @@ export default function AdminDashboard({
   setUsers
 }: AdminDashboardProps) {
   
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'activities' | 'proofs' | 'reports' | 'settings' | 'diaban'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'activities' | 'proofs' | 'reports' | 'diaban'>('overview');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
 
@@ -134,8 +140,16 @@ export default function AdminDashboard({
       () => {
         if (editingTruongHoc) {
           // Update
-          setTruongHoc(prev => prev.map(th => th.id === editingTruongHoc.id ? { ...th, ...truongHocForm } : th));
-          onShowNotification(`Đã cập nhật trường học "${truongHocForm.tenTruong}" thành công!`, 'success');
+          const oldName = editingTruongHoc.tenTruong;
+          const newName = truongHocForm.tenTruong.trim();
+          
+          setTruongHoc(prev => prev.map(th => th.id === editingTruongHoc.id ? { ...th, ...truongHocForm, tenTruong: newName } : th));
+          
+          if (oldName !== newName) {
+            setMembers(prev => prev.map(m => m.truong === oldName ? { ...m, truong: newName } : m));
+          }
+          
+          onShowNotification(`Đã cập nhật trường học "${newName}" thành công!`, 'success');
         } else {
           // Create new
           const newTruongHoc: TruongHoc = {
@@ -172,7 +186,6 @@ export default function AdminDashboard({
   // Search & Filter state for Members
   const [memberSearch, setMemberSearch] = useState('');
   const [memberFilterSchool, setMemberFilterSchool] = useState('All');
-  const [memberFilterClass, setMemberFilterClass] = useState('All');
   
   // Search state for Activities
   const [activitySearch, setActivitySearch] = useState('');
@@ -186,20 +199,23 @@ export default function AdminDashboard({
 
   const [reviewingProof, setReviewingProof] = useState<MinhChung | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [attendanceModalActivity, setAttendanceModalActivity] = useState<HoatDong | null>(null);
+  const [attendanceTab, setAttendanceTab] = useState<'joined' | 'absent'>('joined');
+  const [modalSearch, setModalSearch] = useState('');
 
   // Member form state
-  const [memberForm, setMemberForm] = useState<Omit<DoanVien, 'id' | 'diemTichLuy'>>({
+  const [memberForm, setMemberForm] = useState<Omit<DoanVien, 'id' | 'diemTichLuy' | 'gioiTinh'> & { gioiTinh: 'Nam' | 'Nữ' | '' }>({
     maDoanVien: '',
     hoTen: '',
     ngaySinh: '2008-01-01',
-    gioiTinh: 'Nam',
+    gioiTinh: '',
     sdt: '',
     email: '',
     truong: TRUONG_LIST[0],
     lop: 'N/A',
     chiDoan: CHI_DOAN_LIST[0],
     diaChi: '',
-    anhDaiDien: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    anhDaiDien: ANONYMOUS_AVATAR,
     trangThai: 'Đang hoạt động'
   });
 
@@ -219,20 +235,30 @@ export default function AdminDashboard({
   // TruongHoc state and helpers moved to the top level of the component for easy use
 
   // Open member modal for create
+  const generateUniqueMaDoanVien = () => {
+    let index = members.length + 101;
+    let code = `DV12${String(index).padStart(3, '0')}`;
+    while (members.some(m => m.maDoanVien.toLowerCase() === code.toLowerCase())) {
+      index++;
+      code = `DV12${String(index).padStart(3, '0')}`;
+    }
+    return code;
+  };
+
   const handleOpenAddMember = () => {
     setEditingMember(null);
     setMemberForm({
-      maDoanVien: `DV12${String(members.length + 101).padStart(3, '0')}`,
+      maDoanVien: generateUniqueMaDoanVien(),
       hoTen: '',
       ngaySinh: '2008-01-01',
-      gioiTinh: 'Nam',
+      gioiTinh: '',
       sdt: '',
       email: '',
       truong: TRUONG_LIST[0],
       lop: 'N/A',
       chiDoan: CHI_DOAN_LIST[0],
       diaChi: '',
-      anhDaiDien: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80',
+      anhDaiDien: ANONYMOUS_AVATAR,
       trangThai: 'Đang hoạt động'
     });
     setShowMemberModal(true);
@@ -355,6 +381,224 @@ export default function AdminDashboard({
         onShowNotification(`Đã xóa đoàn viên ${name}`, 'success');
       },
       'danger'
+    );
+  };
+
+  // Toggle lock member
+  const handleToggleLockMember = (id: string, name: string, currentlyLocked: boolean) => {
+    triggerConfirm(
+      currentlyLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản',
+      currentlyLocked 
+        ? `Bạn có chắc chắn muốn mở khóa tài khoản cho đoàn viên ${name}?` 
+        : `Bạn có chắc chắn muốn khóa tài khoản cho đoàn viên ${name}? Sau khi khóa, đoàn viên sẽ không thể đăng nhập vào hệ thống.`,
+      () => {
+        setMembers(prev => prev.map(m => m.id === id ? { ...m, isLocked: !currentlyLocked } : m));
+        if (setUsers) {
+          setUsers(prev => prev.map(u => u.doanVienId === id ? { ...u, isLocked: !currentlyLocked } : u));
+        }
+        onShowNotification(
+          currentlyLocked ? `Đã mở khóa tài khoản đoàn viên ${name}` : `Đã khóa tài khoản đoàn viên ${name}`, 
+          'success'
+        );
+      },
+      currentlyLocked ? 'info' : 'danger'
+    );
+  };
+
+
+
+  // Render Attendance & Participation report modal
+  const handleRenderAttendanceModal = () => {
+    if (!attendanceModalActivity) return null;
+
+    const act = attendanceModalActivity;
+    const approvedProofs = proofs.filter(p => p.hoatDongId === act.id && p.status === 'Đã duyệt');
+    
+    const joinedMembers = members.filter(m => approvedProofs.some(p => p.doanVienId === m.id));
+    const absentMembers = members.filter(m => !approvedProofs.some(p => p.doanVienId === m.id));
+
+    const totalCount = members.length;
+    const joinedCount = joinedMembers.length;
+    const absentCount = absentMembers.length;
+    const rate = totalCount > 0 ? Math.round((joinedCount / totalCount) * 100) : 0;
+
+    const searchLower = (modalSearch || '').toLowerCase();
+    const filteredJoined = joinedMembers.filter(m => 
+      m.hoTen.toLowerCase().includes(searchLower) || 
+      m.maDoanVien.toLowerCase().includes(searchLower) ||
+      m.truong.toLowerCase().includes(searchLower)
+    );
+
+    const filteredAbsent = absentMembers.filter(m => 
+      m.hoTen.toLowerCase().includes(searchLower) || 
+      m.maDoanVien.toLowerCase().includes(searchLower) ||
+      m.truong.toLowerCase().includes(searchLower)
+    );
+
+    const activeList = attendanceTab === 'joined' ? filteredJoined : filteredAbsent;
+
+    return (
+      <div 
+        id="attendance-modal-overlay"
+        onClick={() => { setAttendanceModalActivity(null); setModalSearch(''); }}
+        className="fixed inset-0 z-50 flex justify-center items-start overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm cursor-pointer sm:items-center animate-fade-in"
+      >
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-4xl rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden flex flex-col cursor-default my-auto relative"
+        >
+          {/* Header */}
+          <div className="bg-gradient-to-br from-[#005691] to-[#0082c8] p-5 text-white flex items-center justify-between">
+            <div className="space-y-1 text-left">
+              <span className="rounded bg-white/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">Thống kê hoạt động hè</span>
+              <h3 className="text-sm sm:text-base font-extrabold line-clamp-1">{act.ten}</h3>
+            </div>
+            <button 
+              onClick={() => { setAttendanceModalActivity(null); setModalSearch(''); }}
+              className="p-1.5 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Statistics Grid */}
+          <div className="p-5 bg-slate-50 border-b border-slate-100 grid grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+            <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Tổng số đoàn viên</span>
+              <p className="text-xl font-black text-slate-800 mt-0.5">{totalCount} ĐV</p>
+            </div>
+            <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wide">Đã tham gia (Đạt)</span>
+              <p className="text-xl font-black text-emerald-600 mt-0.5">{joinedCount} ĐV</p>
+            </div>
+            <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
+              <span className="text-[10px] font-black text-red-400 uppercase tracking-wide">Vắng / Chưa đạt</span>
+              <p className="text-xl font-black text-red-500 mt-0.5">{absentCount} ĐV</p>
+            </div>
+            <div className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
+              <span className="text-[10px] font-black text-[#005691] uppercase tracking-wide">Tỷ lệ tham gia</span>
+              <p className="text-xl font-black text-[#005691] mt-0.5">{rate}%</p>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-100">
+                <div className="h-full bg-[#005691] transition-all duration-500" style={{ width: `${rate}%` }}></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Search and Tabs */}
+          <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 text-left">
+            {/* Tabs */}
+            <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
+              <button
+                onClick={() => setAttendanceTab('joined')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  attendanceTab === 'joined'
+                    ? 'bg-white text-[#005691] shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Đã tham gia ({joinedCount})
+              </button>
+              <button
+                onClick={() => setAttendanceTab('absent')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  attendanceTab === 'absent'
+                    ? 'bg-white text-red-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Vắng / Không tham gia ({absentCount})
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Tìm đoàn viên..."
+                value={modalSearch}
+                onChange={(e) => setModalSearch(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#005691]/20 transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* List Section */}
+          <div className="overflow-y-auto max-h-96 p-5">
+            {activeList.length === 0 ? (
+              <div className="text-center p-8 text-slate-400 text-xs">
+                Không tìm thấy đoàn viên nào khớp với tìm kiếm.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50 font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                      <th className="p-3 text-center w-12">STT</th>
+                      <th className="p-3">Họ và tên</th>
+                      <th className="p-3">Mã đoàn viên</th>
+                      <th className="p-3">Trường học</th>
+                      <th className="p-3">Số điện thoại</th>
+                      <th className="p-3 text-center">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {activeList.map((m, idx) => {
+                      const proof = approvedProofs.find(p => p.doanVienId === m.id);
+                      
+                      return (
+                        <tr key={m.id} className="hover:bg-slate-50/40 transition-colors">
+                          <td className="p-3 text-center text-slate-400 font-bold">{idx + 1}</td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <img 
+                                src={m.anhDaiDien} 
+                                alt={m.hoTen} 
+                                className="h-7 w-7 rounded-full border object-cover shrink-0"
+                                referrerPolicy="no-referrer"
+                              />
+                              <span className="font-bold text-slate-700">{m.hoTen}</span>
+                            </div>
+                          </td>
+                          <td className="p-3 font-mono text-slate-500 font-bold">{m.maDoanVien}</td>
+                          <td className="p-3 text-slate-500 font-semibold">{m.truong}</td>
+                          <td className="p-3 font-semibold text-slate-600">{m.sdt}</td>
+                          <td className="p-3 text-center whitespace-nowrap">
+                            {attendanceTab === 'joined' ? (
+                              <div className="inline-flex flex-col items-center">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[9px] font-black text-emerald-600 border border-emerald-100">
+                                  <Check className="h-2.5 w-2.5" /> ĐÃ ĐẠT
+                                </span>
+                                {proof?.approvedAt && (
+                                  <span className="text-[8px] text-slate-400 mt-0.5 font-mono">Duyệt: {new Date(proof.approvedAt).toLocaleDateString('vi-VN')}</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-[9px] font-black text-red-600 border border-red-100">
+                                <X className="h-2.5 w-2.5" /> VẮNG MẶT
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-end">
+            <button
+              onClick={() => { setAttendanceModalActivity(null); setModalSearch(''); }}
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-sm"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -519,7 +763,6 @@ export default function AdminDashboard({
           'Số Điện Thoại': m.sdt,
           'Email': m.email,
           'Trường THPT Liên Kết': m.truong,
-          'Lớp': m.lop,
           'Chi Đoàn Địa Bàn': m.chiDoan,
           'Minh Chứng Đã Duyệt': approvedCount,
           'Điểm Tích Lũy Hè': m.diemTichLuy,
@@ -603,7 +846,7 @@ export default function AdminDashboard({
   // EXPORT EXCEL (CSV) Real Implementation
   const handleExportCSV = () => {
     // Generate CSV string
-    const headers = ['Ma Doan Vien', 'Ho Ten', 'Ngay Sinh', 'Gioi Tinh', 'SDT', 'Email', 'Truong THPT', 'Lop', 'Chi Doan', 'Diem Tich Luy', 'Trang Thai'];
+    const headers = ['Ma Doan Vien', 'Ho Ten', 'Ngay Sinh', 'Gioi Tinh', 'SDT', 'Email', 'Truong THPT', 'Chi Doan', 'Diem Tich Luy', 'Trang Thai'];
     const rows = members.map(m => [
       m.maDoanVien,
       `"${m.hoTen}"`,
@@ -612,7 +855,6 @@ export default function AdminDashboard({
       `'${m.sdt}`,
       m.email,
       `"${m.truong}"`,
-      m.lop,
       `"${m.chiDoan}"`,
       m.diemTichLuy,
       m.trangThai
@@ -756,10 +998,9 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                           m.maDoanVien.toLowerCase().includes(memberSearch.toLowerCase()) ||
                           m.email.toLowerCase().includes(memberSearch.toLowerCase());
       const matchSchool = memberFilterSchool === 'All' || m.truong === memberFilterSchool;
-      const matchClass = memberFilterClass === 'All' || m.lop === memberFilterClass;
-      return matchSearch && matchSchool && matchClass;
+      return matchSearch && matchSchool;
     });
-  }, [members, memberSearch, memberFilterSchool, memberFilterClass]);
+  }, [members, memberSearch, memberFilterSchool]);
 
   // Filtered activities list
   const filteredActivities = useMemo(() => {
@@ -815,16 +1056,26 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
       </div>
 
       {/* MOBILE SIDEBAR DRAWER PANEL OVERLAY */}
-      {isMobileSidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex animate-fade-in">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300"
-            onClick={() => setIsMobileSidebarOpen(false)}
-          />
+      <AnimatePresence>
+        {isMobileSidebarOpen && (
+          <div className="md:hidden fixed inset-0 z-50 flex">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"
+              onClick={() => setIsMobileSidebarOpen(false)}
+            />
 
-          {/* Drawer main body */}
-          <div className="relative flex w-64 max-w-xs flex-col bg-slate-900 text-slate-300 shadow-2xl h-full border-r border-slate-800">
+            {/* Drawer main body */}
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="relative flex w-64 max-w-xs flex-col bg-slate-900 text-slate-300 shadow-2xl h-full border-r border-slate-800 z-10"
+            >
             {/* Header branding */}
             <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -944,18 +1195,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                 </span>
               </button>
 
-              <button
-                onClick={() => {
-                  setActiveTab('settings');
-                  setIsMobileSidebarOpen(false);
-                }}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'settings' ? 'bg-[#005691] text-white' : 'hover:bg-slate-800 text-slate-400'
-                }`}
-              >
-                <Settings className="h-4 w-4 shrink-0" />
-                Cài đặt chung
-              </button>
+
             </nav>
 
             {/* Logout bottom drawer */}
@@ -980,9 +1220,10 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                 Đăng xuất hệ thống
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
 
       {/* PERSISTENT SIDEBAR FOR DESKTOP */}
       <aside className="hidden md:flex w-64 bg-slate-900 text-slate-300 flex-col shrink-0 border-r border-slate-800">
@@ -1090,16 +1331,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
             </span>
           </button>
 
-          <button
-            id="tab-btn-settings"
-            onClick={() => setActiveTab('settings')}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'settings' ? 'bg-[#005691] text-white' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Settings className="h-4 w-4 shrink-0" />
-            Cài đặt chung
-          </button>
+
         </nav>
 
         {/* Footer logout */}
@@ -1130,7 +1362,14 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
         
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="space-y-6 animate-fade-in">
+          <motion.div
+            key="overview"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-6"
+          >
             {/* Top greetings banner with modern SaaS style */}
             <div className="rounded-3xl bg-gradient-to-r from-[#005691] via-blue-700 to-[#0284c7] p-6 text-white shadow-xl border border-white/5 relative overflow-hidden">
               <div className="absolute right-0 bottom-0 translate-y-6 translate-x-6 opacity-5 pointer-events-none">
@@ -1154,7 +1393,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group transform hover:-translate-y-0.5">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-display">Tổng Đoàn viên</p>
-                  <p className="text-2xl font-black text-slate-900 mt-1.5 font-display">{processedStats.total}</p>
+                  <p className="text-2xl font-black text-slate-900 mt-1.5 font-display"><AnimatedCounter value={processedStats.total} /></p>
                   <p className="text-[10px] text-slate-500 font-semibold mt-1 flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
                     <span>{processedStats.active} đang sinh hoạt hè</span>
@@ -1168,7 +1407,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group transform hover:-translate-y-0.5">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-display">Trường THPT</p>
-                  <p className="text-2xl font-black text-slate-900 mt-1.5 font-display">{activeSchoolsList.length}</p>
+                  <p className="text-2xl font-black text-slate-900 mt-1.5 font-display"><AnimatedCounter value={activeSchoolsList.length} /></p>
                   <p className="text-[10px] text-slate-500 font-semibold mt-1">Trường liên kết trực thuộc</p>
                 </div>
                 <div className="h-11 w-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-inner transition-colors group-hover:bg-emerald-600 group-hover:text-white duration-300">
@@ -1179,7 +1418,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group transform hover:-translate-y-0.5">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-display">Chiến dịch Hè</p>
-                  <p className="text-2xl font-black text-slate-900 mt-1.5 font-display">{activities.length}</p>
+                  <p className="text-2xl font-black text-slate-900 mt-1.5 font-display"><AnimatedCounter value={activities.length} /></p>
                   <p className="text-[10px] text-slate-500 font-semibold mt-1">Tổng số hoạt động mở</p>
                 </div>
                 <div className="h-11 w-11 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 shadow-inner transition-colors group-hover:bg-purple-600 group-hover:text-white duration-300">
@@ -1191,7 +1430,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-display">Chờ phê duyệt</p>
                   <p className={`text-2xl font-black mt-1.5 font-display ${processedStats.pendingCount > 0 ? 'text-amber-500' : 'text-slate-900'}`}>
-                    {processedStats.pendingCount}
+                    <AnimatedCounter value={processedStats.pendingCount} />
                   </p>
                   <p className="text-[10px] text-slate-500 font-semibold mt-1">Minh chứng ảnh chờ duyệt</p>
                 </div>
@@ -1399,12 +1638,19 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
               </div>
             </div>
 
-          </div>
+          </motion.div>
         )}
 
         {/* TAB 2: MEMBERS CRUD */}
         {activeTab === 'members' && (
-          <div className="space-y-4 animate-fade-in">
+          <motion.div
+            key="members"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-4"
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wider">Danh sách Đoàn viên khối 12</h2>
@@ -1555,6 +1801,15 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                                 <Edit className="h-4 w-4" />
                               </button>
                               <button
+                                id={`lock-member-btn-${m.id}`}
+                                onClick={() => handleToggleLockMember(m.id, m.hoTen, !!m.isLocked)}
+                                className={`p-1 rounded transition-colors cursor-pointer ${m.isLocked ? 'text-amber-600 hover:bg-amber-50' : 'text-slate-600 hover:bg-slate-100'}`}
+                                title={m.isLocked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+                              >
+                                {m.isLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                              </button>
+
+                              <button
                                 id={`delete-member-btn-${m.id}`}
                                 onClick={() => handleDeleteMember(m.id, m.hoTen)}
                                 className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
@@ -1603,12 +1858,22 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                           <button
                             onClick={() => handleOpenEditMember(m)}
                             className="p-1 text-blue-600 hover:bg-blue-50 rounded cursor-pointer"
+                            title="Sửa thông tin"
                           >
                             <Edit className="h-3.5 w-3.5" />
                           </button>
                           <button
+                            onClick={() => handleToggleLockMember(m.id, m.hoTen, !!m.isLocked)}
+                            className={`p-1 rounded cursor-pointer ${m.isLocked ? 'text-amber-600 hover:bg-amber-50' : 'text-slate-600 hover:bg-slate-100'}`}
+                            title={m.isLocked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+                          >
+                            {m.isLocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                          </button>
+
+                          <button
                             onClick={() => handleDeleteMember(m.id, m.hoTen)}
                             className="p-1 text-red-600 hover:bg-red-50 rounded cursor-pointer"
+                            title="Xóa"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -1634,12 +1899,19 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* TAB 3: ACTIVITIES MANAGER */}
         {activeTab === 'activities' && (
-          <div className="space-y-4 animate-fade-in">
+          <motion.div
+            key="activities"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-4"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wider">Quản lý hoạt động rèn luyện hè</h2>
@@ -1733,6 +2005,18 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
 
                       <div className="flex items-center justify-end gap-2 border-t border-slate-50 pt-2.5">
                         <button
+                          id={`view-attendance-btn-${act.id}`}
+                          onClick={() => {
+                            setAttendanceModalActivity(act);
+                            setAttendanceTab('joined');
+                          }}
+                          className="rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#005691] p-1.5 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Xem tỷ lệ tham gia, danh sách vắng, danh sách đạt"
+                        >
+                          <Users className="h-3.5 w-3.5" />
+                          DS Tham gia
+                        </button>
+                        <button
                           id={`toggle-lock-act-btn-${act.id}`}
                           onClick={() => handleToggleLockActivity(act.id, act.locked || false, act.ten)}
                           className={`rounded-lg p-1.5 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all border ${
@@ -1776,12 +2060,19 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                 ))
               )}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* TAB 4: DUYỆT MINH CHỨNG */}
         {activeTab === 'proofs' && (
-          <div className="space-y-4 animate-fade-in">
+          <motion.div
+            key="proofs"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-4"
+          >
             <div>
               <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wider">Phê duyệt minh chứng hoạt động hè</h2>
               <p className="text-xs text-slate-500">Phê chuẩn ảnh hiện trường chụp kèm đóng dấu mốc thời gian thực và tọa độ GPS</p>
@@ -1873,12 +2164,19 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                 </table>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* TAB 5: REPORTS & RANKINGS */}
         {activeTab === 'reports' && (
-          <div className="space-y-4 animate-fade-in">
+          <motion.div
+            key="reports"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-4"
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wider">Bảng tổng hợp điểm rèn luyện hè</h2>
@@ -2047,76 +2345,21 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
               </div>
             </div>
 
-          </div>
+          </motion.div>
         )}
 
-        {/* TAB 6: SETTINGS */}
-        {activeTab === 'settings' && (
-          <div className="space-y-6 animate-fade-in max-w-xl">
-            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm space-y-4">
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Cấu hình Chi Đoàn khu phố</h3>
-                <p className="text-xs text-slate-500">Cấu hình các danh sách cơ bản hoạt động trên địa bàn dân cư</p>
-              </div>
 
-              <div className="space-y-4 pt-2">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-                    Tên ban liên lạc / Ban chấp hành
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="Ban chấp hành Chi đoàn Khu phố Tân Hiệp"
-                    className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-                    Danh sách trường liên kết trong khu vực ({activeSchoolsList.length})
-                  </label>
-                  <div className="flex flex-wrap gap-1.5 p-3 rounded-lg border border-slate-100 bg-slate-50">
-                    {activeSchoolsList.map(t => (
-                      <span key={t} className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 border border-slate-200">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-                    Tải lại dữ liệu hệ thống
-                  </label>
-                  <p className="text-[11px] text-slate-400 mb-2">
-                    Nhấp vào nút bên dưới để dọn dẹp các chỉnh sửa cá nhân và khôi phục lại dữ liệu mẫu (Seeded Data) ban đầu của hệ thống.
-                  </p>
-                  <button
-                    id="reset-system-data"
-                    onClick={() => {
-                      triggerConfirm(
-                        'Khôi phục dữ liệu gốc',
-                        'Tất cả những thay đổi (thêm mới đoàn viên, phê duyệt, chỉnh sửa hoạt động...) sẽ bị xóa bỏ để quay về dữ liệu mặc định. Bạn có muốn tiếp tục?',
-                        () => {
-                          localStorage.clear();
-                          window.location.reload();
-                        },
-                        'danger'
-                      );
-                    }}
-                    className="rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 px-4 py-2 text-xs font-semibold cursor-pointer transition-colors"
-                  >
-                    Khôi phục dữ liệu gốc ban đầu
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* TAB: TRUONG HOC MANAGEMENT */}
         {activeTab === 'diaban' && (
-          <div className="space-y-6 animate-fade-in">
+          <motion.div
+            key="diaban"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-6"
+          >
             {/* Top header action block */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
               <div>
@@ -2339,7 +2582,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
 
       </main>
@@ -2373,15 +2616,16 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
             <form onSubmit={handleSaveMember} className="p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Mã Đoàn viên *</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Mã Đoàn viên * (Tự động cấp)</label>
                   <input
                     id="form-member-ma"
                     type="text"
                     required
+                    readOnly
                     value={memberForm.maDoanVien}
-                    onChange={(e) => setMemberForm(prev => ({ ...prev, maDoanVien: e.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50/50 py-1.5 px-3 text-xs focus:border-[#005691] focus:outline-none"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-100 py-1.5 px-3 text-xs font-mono font-bold text-slate-500 cursor-not-allowed focus:outline-none"
                     placeholder="VD: DV12001"
+                    title="Mã đoàn viên được cấp tự động và không thể chỉnh sửa"
                   />
                 </div>
 
@@ -3270,6 +3514,8 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
           </div>
         </div>
       )}
+
+      {handleRenderAttendanceModal()}
 
     </div>
   );

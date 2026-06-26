@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import logoImage from '../assets/images/tanhiep_youth_union_logo_1782466186789.jpg';
+import Ripple from './RippleEffect';
 import { HoatDong, DoanVien, MinhChung, User } from '../types';
 import { 
   Users, School, Calendar, FileCheck, ShieldAlert, CheckCircle2, 
@@ -52,32 +54,14 @@ export default function LandingPage({
           <div className="flex h-16 items-center justify-between">
             {/* Logo and title */}
             <div className="flex items-center gap-3">
-              {/* Vietnam Youth Union emblem stylized custom SVG */}
+              {/* Vietnam Youth Union emblem stylized custom image */}
               <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full shadow-md flex items-center justify-center bg-slate-900 border border-slate-200">
-                <svg className="h-full w-full" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Deep corporate blue base gradient representation */}
-                  <circle cx="50" cy="50" r="48" fill="url(#header-logo-grad)" stroke="#ffffff" strokeWidth="2" />
-                  {/* Abstract stylized Youth Union waving flag path */}
-                  <path d="M22 66 C 26 44, 40 30, 78 22 C 72 44, 58 56, 22 66 Z" fill="url(#header-flag-grad)" />
-                  {/* Brilliant gold star inside the flag */}
-                  <polygon points="51,26 54,34 63,34 56,39 58,47 51,42 44,47 46,39 39,34 48,34" fill="#FBBF24" />
-                  {/* Decorative green leaf/laurel branch for Summer activities */}
-                  <path d="M22 68 Q 36 84, 50 81" stroke="#10B981" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                  <path d="M78 68 Q 64 84, 50 81" stroke="#10B981" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                  {/* Glow accent center point */}
-                  <circle cx="51" cy="35" r="1.5" fill="#FFFFFF" />
-                  
-                  <defs>
-                    <linearGradient id="header-logo-grad" x1="0" y1="0" x2="100" y2="100">
-                      <stop offset="0%" stopColor="#005691" />
-                      <stop offset="100%" stopColor="#0284C7" />
-                    </linearGradient>
-                    <linearGradient id="header-flag-grad" x1="22" y1="22" x2="78" y2="66">
-                      <stop offset="0%" stopColor="#EF4444" />
-                      <stop offset="100%" stopColor="#DC2626" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+                <img 
+                  src={logoImage} 
+                  alt="Logo Chi Đoàn" 
+                  className="h-full w-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
               </div>
               <div>
                 <h1 className="text-sm font-bold text-[#005691] sm:text-base leading-tight uppercase tracking-tight">
@@ -156,10 +140,11 @@ export default function LandingPage({
               <button
                 id="landing-login-btn"
                 onClick={onOpenLogin}
-                className="rounded-lg bg-[#005691] hover:bg-[#004270] text-white px-4 py-2 text-xs font-semibold shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                className="relative overflow-hidden rounded-lg bg-[#005691] hover:bg-[#004270] text-white px-4 py-2 text-xs font-semibold shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 Đăng nhập hệ thống
                 <ArrowRight className="h-3.5 w-3.5" />
+                <Ripple />
               </button>
             )}
           </div>
@@ -206,28 +191,31 @@ export default function LandingPage({
                   <button
                     id="hero-dashboard-btn"
                     onClick={onGoToDashboard}
-                    className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-teal-900/15 hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                    className="relative overflow-hidden w-full sm:w-auto rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-teal-900/15 hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
                   >
                     {currentUser.role === 'admin' ? 'Vào Bảng Quản Trị' : 'Vào Hồ Sơ Cá Nhân'}
                     <ExternalLink className="h-4 w-4" />
+                    <Ripple />
                   </button>
                 ) : (
                   <button
                     id="hero-login-btn"
                     onClick={onOpenLogin}
-                    className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-[#005691] to-[#0284c7] hover:from-[#004b7f] hover:to-[#0274b0] px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-blue-900/15 hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                    className="relative overflow-hidden w-full sm:w-auto rounded-xl bg-gradient-to-r from-[#005691] to-[#0284c7] hover:from-[#004b7f] hover:to-[#0274b0] px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-blue-900/15 hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
                   >
                     Đăng nhập hệ thống
                     <ArrowRight className="h-4 w-4" />
+                    <Ripple />
                   </button>
                 )}
                 <button
                   id="hero-view-btn"
                   onClick={() => scrollToSection('hoat-dong')}
-                  className="w-full sm:w-auto rounded-xl bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-50 px-6 py-3.5 text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:border-slate-300 transform hover:-translate-y-0.5 active:translate-y-0"
+                  className="relative overflow-hidden w-full sm:w-auto rounded-xl bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-50 px-6 py-3.5 text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:border-slate-300 transform hover:-translate-y-0.5 active:translate-y-0"
                 >
                   <Calendar className="h-4 w-4 text-blue-500" />
                   Xem hoạt động hè
+                  <Ripple color="rgba(0, 0, 0, 0.08)" />
                 </button>
               </div>
             </div>
@@ -365,7 +353,7 @@ export default function LandingPage({
             </div>
             <button
               id="landing-see-all-activities"
-              onClick={onOpenLogin}
+              onClick={currentUser ? onGoToDashboard : onOpenLogin}
               className="text-xs font-semibold text-[#005691] hover:text-[#004270] flex items-center gap-1 hover:underline cursor-pointer"
             >
               Xem tất cả và nộp minh chứng
@@ -426,7 +414,7 @@ export default function LandingPage({
                     Hạn nộp: <strong className="text-slate-600">{act.hanNop.split(' ')[0]}</strong>
                   </span>
                   <button
-                    onClick={onOpenLogin}
+                    onClick={currentUser ? onGoToDashboard : onOpenLogin}
                     className="text-xs font-semibold text-[#005691] hover:text-[#004270] flex items-center gap-0.5 cursor-pointer"
                   >
                     Nộp ảnh
@@ -701,7 +689,7 @@ export default function LandingPage({
 
                         {/* Text details */}
                         <div className="flex-1 min-w-0 space-y-0.5">
-                          <p className="font-extrabold text-xs text-slate-900 truncate leading-snug">{m.hoTen}</p>
+                          <p className="font-extrabold text-xs text-slate-900 leading-snug break-words">{m.hoTen}</p>
                           <p className="text-[10px] text-slate-500 font-medium truncate">{m.truong}</p>
                           <div className="flex items-center gap-2">
                             <span className="text-[9px] font-mono text-slate-400">{m.maDoanVien}</span>
@@ -760,25 +748,12 @@ export default function LandingPage({
             <div className="md:col-span-5 space-y-4">
               <div className="flex items-center gap-2.5">
                 <div className="h-9 w-9 overflow-hidden rounded-full shadow-md flex items-center justify-center bg-slate-950 border border-slate-700">
-                  <svg className="h-full w-full" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="50" cy="50" r="48" fill="url(#footer-logo-grad)" stroke="#ffffff" strokeWidth="2" />
-                    <path d="M22 66 C 26 44, 40 30, 78 22 C 72 44, 58 56, 22 66 Z" fill="url(#footer-flag-grad)" />
-                    <polygon points="51,26 54,34 63,34 56,39 58,47 51,42 44,47 46,39 39,34 48,34" fill="#FBBF24" />
-                    <path d="M22 68 Q 36 84, 50 81" stroke="#10B981" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    <path d="M78 68 Q 64 84, 50 81" stroke="#10B981" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    <circle cx="51" cy="35" r="1.5" fill="#FFFFFF" />
-                    
-                    <defs>
-                      <linearGradient id="footer-logo-grad" x1="0" y1="0" x2="100" y2="100">
-                        <stop offset="0%" stopColor="#005691" />
-                        <stop offset="100%" stopColor="#0284C7" />
-                      </linearGradient>
-                      <linearGradient id="footer-flag-grad" x1="22" y1="22" x2="78" y2="66">
-                        <stop offset="0%" stopColor="#EF4444" />
-                        <stop offset="100%" stopColor="#DC2626" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
+                  <img 
+                    src={logoImage} 
+                    alt="Logo Chi Đoàn" 
+                    className="h-full w-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
                 <div>
                   <h4 className="font-extrabold text-white text-sm tracking-wide uppercase">
@@ -816,8 +791,8 @@ export default function LandingPage({
                   </button>
                 </li>
                 <li>
-                  <button onClick={onOpenLogin} className="hover:text-white transition-colors cursor-pointer text-[#005691] font-semibold">
-                    Đăng nhập tài khoản
+                  <button onClick={currentUser ? onGoToDashboard : onOpenLogin} className="hover:text-white transition-colors cursor-pointer text-[#005691] font-semibold">
+                    {currentUser ? 'Vào bảng điều khiển' : 'Đăng nhập tài khoản'}
                   </button>
                 </li>
               </ul>

@@ -13,6 +13,7 @@ export interface DoanVien {
   anhDaiDien: string;
   trangThai: 'Đang hoạt động' | 'Tạm ngưng' | 'Trưởng thành Đoàn';
   diemTichLuy: number;
+  isLocked?: boolean;
 }
 
 export interface HoatDong {
@@ -47,6 +48,8 @@ export interface User {
   email: string;
   role: 'admin' | 'member';
   doanVienId?: string;
+  password?: string;
+  isLocked?: boolean;
 }
 
 export interface TruongHoc {

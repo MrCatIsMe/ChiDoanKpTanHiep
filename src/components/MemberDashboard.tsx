@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import AnimatedCounter from './AnimatedCounter';
 import { DoanVien, HoatDong, MinhChung, User } from '../types';
 import { TRUONG_LIST } from '../data/mockData';
 import { compressAndResizeImage } from '../utils/image';
@@ -401,7 +403,14 @@ export default function MemberDashboard({
         
         {/* TAB 1: PROFILE / OVERVIEW */}
         {activeTab === 'profile' && (
-          <div className="space-y-6 animate-fade-in">
+          <motion.div
+            key="profile"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-6"
+          >
             {/* Greeting card with point display */}
             <div className="rounded-3xl bg-gradient-to-r from-teal-500 via-emerald-500 to-blue-600 p-6 text-white shadow-xl relative overflow-hidden">
               {/* Decorative radial circles */}
@@ -423,7 +432,7 @@ export default function MemberDashboard({
                 
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 text-center shrink-0 shadow-lg transform hover:scale-102 transition-transform">
                   <p className="text-[10px] font-extrabold text-teal-100 uppercase tracking-widest font-display">TỔNG ĐIỂM TÍCH LŨY</p>
-                  <p className="text-3xl font-black text-white mt-1 font-display">+{currentMember.diemTichLuy} Điểm</p>
+                  <p className="text-3xl font-black text-white mt-1 font-display">+<AnimatedCounter value={currentMember.diemTichLuy} /> Điểm</p>
                   <p className="text-[9px] text-teal-100/80 mt-1 uppercase font-bold tracking-wider">Hệ thống thời gian thực</p>
                 </div>
               </div>
@@ -434,7 +443,7 @@ export default function MemberDashboard({
               <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đã tham gia nộp</p>
-                  <p className="text-2xl font-black text-slate-900 mt-1">{studentStats.totalSubmitted}</p>
+                  <p className="text-2xl font-black text-slate-900 mt-1"><AnimatedCounter value={studentStats.totalSubmitted} /></p>
                 </div>
                 <div className="h-9 w-9 rounded-lg bg-blue-50 text-[#005691] flex items-center justify-center">
                   <FileText className="h-5 w-5" />
@@ -444,7 +453,7 @@ export default function MemberDashboard({
               <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Minh chứng được duyệt</p>
-                  <p className="text-2xl font-black text-emerald-600 mt-1">{studentStats.approvedCount}</p>
+                  <p className="text-2xl font-black text-emerald-600 mt-1"><AnimatedCounter value={studentStats.approvedCount} /></p>
                 </div>
                 <div className="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
                   <CheckCircle2 className="h-5 w-5" />
@@ -454,7 +463,7 @@ export default function MemberDashboard({
               <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đang chờ xét duyệt</p>
-                  <p className="text-2xl font-black text-amber-500 mt-1">{studentStats.pendingCount}</p>
+                  <p className="text-2xl font-black text-amber-500 mt-1"><AnimatedCounter value={studentStats.pendingCount} /></p>
                 </div>
                 <div className="h-9 w-9 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center">
                   <Clock className="h-5 w-5" />
@@ -464,7 +473,7 @@ export default function MemberDashboard({
               <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Không đạt (Cần sửa)</p>
-                  <p className="text-2xl font-black text-red-600 mt-1">{studentStats.rejectedCount}</p>
+                  <p className="text-2xl font-black text-red-600 mt-1"><AnimatedCounter value={studentStats.rejectedCount} /></p>
                 </div>
                 <div className="h-9 w-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
                   <AlertTriangle className="h-5 w-5" />
@@ -552,17 +561,7 @@ export default function MemberDashboard({
                     </select>
                   </div>
 
-                  {/* Lớp */}
-                  <div className="space-y-1">
-                    <label className="block font-bold text-slate-400 uppercase tracking-wider">Lớp học</label>
-                    <input
-                      type="text"
-                      value={editForm.lop}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, lop: e.target.value }))}
-                      className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
-                      placeholder="12A1"
-                    />
-                  </div>
+
 
                   {/* Trường */}
                   <div className="space-y-1">
@@ -679,10 +678,7 @@ export default function MemberDashboard({
                     <span className="font-bold block text-slate-800">{currentMember.gioiTinh || 'Chưa cập nhật'}</span>
                   </div>
 
-                  <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    <span className="font-semibold text-slate-400">Lớp học:</span>
-                    <span className="font-bold block text-slate-800">{currentMember.lop || 'Chưa cập nhật'}</span>
-                  </div>
+
 
                   <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
                     <span className="font-semibold text-slate-400">Chi đoàn địa bàn dân cư:</span>
@@ -741,12 +737,19 @@ export default function MemberDashboard({
                 <p className="text-[10px] text-slate-400">Chụp ảnh kèm mốc giờ và tọa độ GPS</p>
               </button>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* TAB 2: ACTIVITIES CATALOG */}
         {activeTab === 'activities' && (
-          <div className="space-y-4 animate-fade-in">
+          <motion.div
+            key="activities"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-4"
+          >
             <div>
               <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wider">Danh mục hoạt động sinh hoạt hè</h2>
               <p className="text-xs text-slate-500">Danh sách các hoạt động hè đang diễn ra của Chi đoàn khu phố mở cho lớp 12</p>
@@ -843,12 +846,19 @@ export default function MemberDashboard({
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* TAB 3: TIMEMARK SUBMISSION FORM */}
         {activeTab === 'submit' && (
-          <div className="space-y-6 animate-fade-in max-w-xl">
+          <motion.div
+            key="submit"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-6 max-w-xl"
+          >
             <div>
               <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wider">Cảm biến nộp ảnh TimeMark</h2>
               <p className="text-xs text-slate-500">Hệ thống tự động nhúng vệt mộc ngày giờ thực và tọa độ GPS định vị tại địa phương nhằm bảo chứng kết quả lao động.</p>
@@ -968,12 +978,19 @@ export default function MemberDashboard({
                 {isSelectedActivityLocked ? 'Đã khóa nhận minh chứng cho hoạt động này' : 'Gửi minh chứng lên Bí thư chi đoàn'}
               </button>
             </form>
-          </div>
+          </motion.div>
         )}
 
         {/* TAB 4: SUBMISSION HISTORY */}
         {activeTab === 'history' && (
-          <div className="space-y-4 animate-fade-in">
+          <motion.div
+            key="history"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-4"
+          >
             <div>
               <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wider">Lịch sử minh chứng đã nộp</h2>
               <p className="text-xs text-slate-500">Xem lại trạng thái rà soát điểm rèn luyện rèn hè và phản hồi từ Bí thư chi đoàn</p>
@@ -1062,7 +1079,7 @@ export default function MemberDashboard({
                 </table>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
       </main>
