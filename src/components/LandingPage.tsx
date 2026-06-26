@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import logoImage from '../assets/images/tanhiep_youth_union_logo_1782466186789.jpg';
+import summerActivityImage from '../assets/images/716133976_980830461620655_5677161070193366102_n.jpg';
 import Ripple from './RippleEffect';
 import { HoatDong, DoanVien, MinhChung, User } from '../types';
 import { 
@@ -226,7 +227,7 @@ export default function LandingPage({
               <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-3 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
                 <img
                   id="hero-img-volunteer"
-                  src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=600&q=80"
+                  src={summerActivityImage}
                   alt="Thanh niên tình nguyện"
                   className="h-64 sm:h-80 w-full object-cover rounded-2xl"
                   referrerPolicy="no-referrer"
