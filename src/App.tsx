@@ -5,6 +5,7 @@ import LandingPage from './components/LandingPage';
 import AdminDashboard from './components/AdminDashboard';
 import MemberDashboard from './components/MemberDashboard';
 import AuthModal from './components/AuthModal';
+import ImportantNoticeModal from './components/ImportantNoticeModal';
 import { CheckCircle2, AlertCircle, X, Sparkles, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -45,6 +46,7 @@ export default function App() {
   const [viewingMode, setViewingMode] = useState<'dashboard' | 'landing'>('dashboard');
 
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showImportantNotice, setShowImportantNotice] = useState(true);
   const [members, setMembers] = useState<DoanVien[]>(initialData.doanVien);
   const [activities, setActivities] = useState<HoatDong[]>(initialData.hoatDong);
   const [proofs, setProofs] = useState<MinhChung[]>(initialData.minhChung);
@@ -442,6 +444,13 @@ export default function App() {
             }}
             truongHoc={truongHoc}
           />
+        )}
+      </AnimatePresence>
+
+      {/* RENDER IMPORTANT NOTICE MODAL */}
+      <AnimatePresence>
+        {showImportantNotice && (
+          <ImportantNoticeModal onClose={() => setShowImportantNotice(false)} />
         )}
       </AnimatePresence>
 
