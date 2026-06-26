@@ -5,8 +5,9 @@ import { motion } from 'motion/react';
 const ANONYMOUS_AVATAR = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="%23f1f5f9"/><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="%23cbd5e1"/></svg>';
 const FEMALE_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
 const MALE_AVATAR = 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { sendPasswordResetEmail, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '../lib/firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { User, DoanVien, TruongHoc } from '../types';
 import { TRUONG_LIST, CHI_DOAN_LIST } from '../data/mockData';
 import { compressAndResizeImage } from '../utils/image';
@@ -103,56 +104,62 @@ export default function AuthModal({ onLogin, users, doanViens, onClose, onRegist
     }
   };
 
-  const handleSubmitLogin = (e: React.FormEvent) => {
+  const handleSubmitLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError('Vui lòng nhập đầy đủ tài khoản và mật khẩu');
       return;
     }
 
-    if (roleMode === 'admin') {
-      const isCorrectAdmin = 
-        (email.toLowerCase() === 'admin' || email.toLowerCase() === 'admin@doan.vn') && 
-        password === 'admin';
-        
-      if (isCorrectAdmin) {
-        const foundAdmin = users.find(u => u.role === 'admin') || {
-          id: 'u-admin',
-          email: 'admin@doan.vn',
-          role: 'admin'
-        };
-        onLogin(foundAdmin);
-        onClose();
-      } else {
-        setError('Tài khoản hoặc mật khẩu Ban Chấp Hành (Admin) không chính xác.');
-      }
+    setError('');
+    
+    // SPECIAL ADMIN CASE
+    if (roleMode === 'admin' && email === 'admin' && password === 'TOIYEUTANHIEP') {
+      const foundAdmin = users.find(u => u.role === 'admin') || {
+        id: 'u-admin',
+        email: 'admin@doan.vn',
+        role: 'admin',
+        doanVienId: 'dv-admin',
+        isLocked: false
+      };
+      onLogin(foundAdmin);
+      onClose();
       return;
     }
 
-    // Authenticate against our list (for normal members)
-    const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    
-    if (foundUser) {
-      if (foundUser.role !== roleMode) {
-        setError(`Tài khoản này thuộc vai trò ${foundUser.role === 'admin' ? 'Bí thư' : 'Đoàn viên'}. Hãy chọn đúng vai trò.`);
-        return;
-      }
-      
-      if (foundUser.isLocked) {
-        setError('Tài khoản này đã bị khóa bởi Ban chấp hành Chi đoàn!');
-        return;
-      }
+    try {
+      // 1. Authenticate with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
 
-      const expectedPassword = foundUser.password || '123456';
-      if (password !== expectedPassword && password !== '••••••••') {
-        setError('Mật khẩu đăng nhập không chính xác. Vui lòng thử lại!');
-        return;
-      }
+      // 2. Fetch User document from Firestore
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
-      onLogin(foundUser);
-      onClose();
-    } else {
-      setError('Tài khoản Email đăng nhập không tồn tại trong hệ thống chi đoàn.');
+      if (userDoc.exists()) {
+        const userData = userDoc.data() as User;
+
+        if (userData.role !== roleMode) {
+          setError(`Tài khoản này thuộc vai trò ${userData.role === 'admin' ? 'Bí thư' : 'Đoàn viên'}. Hãy chọn đúng vai trò.`);
+          return;
+        }
+
+        if (userData.isLocked) {
+          setError('Tài khoản này đã bị khóa bởi Ban chấp hành Chi đoàn!');
+          return;
+        }
+
+        onLogin(userData);
+        onClose();
+      } else {
+        setError('Không tìm thấy thông tin người dùng.');
+      }
+    } catch (err: any) {
+      console.error('Login error:', err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setError('Tài khoản hoặc mật khẩu không chính xác.');
+      } else {
+        setError('Đăng nhập thất bại. Vui lòng thử lại.');
+      }
     }
   };
 
@@ -191,7 +198,7 @@ export default function AuthModal({ onLogin, users, doanViens, onClose, onRegist
     }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regHoTen || !regMaDV || !regEmail || !regPassword) {
       setError('Vui lòng điền đầy đủ các thông tin bắt buộc (*)');
@@ -213,54 +220,60 @@ export default function AuthModal({ onLogin, users, doanViens, onClose, onRegist
       return;
     }
 
-    // Check if email or student ID already exists
-    const emailExists = users.some(u => u.email.toLowerCase() === regEmail.toLowerCase());
-    const idExists = doanViens.some(d => d.maDoanVien.toLowerCase() === regMaDV.toLowerCase());
+    setError('');
+    try {
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, regEmail, regPassword);
+      const firebaseUser = userCredential.user;
 
-    if (emailExists) {
-      setError('Email đăng ký đã được sử dụng trong hệ thống.');
-      return;
+      // Create DoanVien and User objects
+      const newDoanVienId = `dv-${firebaseUser.uid}`;
+      const newDoanVien: DoanVien = {
+        id: newDoanVienId,
+        maDoanVien: regMaDV,
+        hoTen: regHoTen,
+        ngaySinh: regNgaySinh,
+        gioiTinh: regGioiTinh,
+        sdt: regSdt || '0900000000',
+        email: regEmail,
+        truong: regTruong,
+        lop: 'N/A',
+        chiDoan: regChiDoan,
+        diaChi: regDiaChi || 'Chưa cập nhật',
+        anhDaiDien: regAvatar,
+        trangThai: 'Đang hoạt động',
+        diemTichLuy: 0
+      };
+
+      const newUser: User = {
+        id: firebaseUser.uid,
+        email: regEmail,
+        role: 'member',
+        doanVienId: newDoanVienId,
+        isLocked: false
+      };
+
+      // Save to Firestore
+      await setDoc(doc(db, 'members', newDoanVienId), newDoanVien);
+      await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+
+      if (onRegister) {
+        onRegister(newDoanVien, newUser);
+      }
+      
+      // Automatically log in
+      onLogin(newUser);
+      onClose();
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      if (err.code === 'auth/email-already-in-use') {
+        setError('Email này đã được sử dụng.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn.');
+      } else {
+        setError('Đăng ký thất bại. Vui lòng thử lại.');
+      }
     }
-    if (idExists) {
-      setError('Mã đoàn viên này đã tồn tại trong hệ thống.');
-      return;
-    }
-
-    // Create DoanVien and User objects
-    const newDoanVienId = `dv-${Date.now()}`;
-    const newDoanVien: DoanVien = {
-      id: newDoanVienId,
-      maDoanVien: regMaDV,
-      hoTen: regHoTen,
-      ngaySinh: regNgaySinh,
-      gioiTinh: regGioiTinh,
-      sdt: regSdt || '0900000000',
-      email: regEmail,
-      truong: regTruong,
-      lop: 'N/A',
-      chiDoan: regChiDoan,
-      diaChi: regDiaChi || 'Chưa cập nhật',
-      anhDaiDien: regAvatar,
-      trangThai: 'Đang hoạt động',
-      diemTichLuy: 0
-    };
-
-    const newUser: User = {
-      id: `u-${Date.now()}`,
-      email: regEmail,
-      role: 'member',
-      doanVienId: newDoanVienId,
-      password: regPassword,
-      isLocked: false
-    };
-
-    if (onRegister) {
-      onRegister(newDoanVien, newUser);
-    }
-    
-    // Automatically log in
-    onLogin(newUser);
-    onClose();
   };
 
   const handleQuickLogin = (presetEmail: string, presetRole: 'admin' | 'member') => {
