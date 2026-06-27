@@ -235,7 +235,9 @@ export default function LandingPage({
                 <div className="absolute bottom-6 left-6 right-6 rounded-2xl bg-slate-900/85 backdrop-blur-md p-4 text-white border border-white/10 shadow-lg">
                   <span className="text-[9px] font-extrabold text-blue-400 tracking-widest uppercase bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">Hoạt động hè tiêu biểu</span>
                   <h4 className="font-bold text-sm sm:text-base mt-2 text-white leading-snug">Chiến dịch Hoa Phượng Đỏ & Mùa hè xanh</h4>
-
+                  <p className="text-[10px] text-slate-300 mt-1 line-clamp-2 leading-relaxed">
+                    Chung tay xây dựng cảnh quan địa phương, nếp sống đô thị văn minh và hướng dẫn ôn tập sinh hoạt hè cho các em thiếu nhi.
+                  </p>
                 </div>
               </div>
             </div>
