@@ -190,6 +190,13 @@ export default function AdminDashboard({
   // Search state for Activities
   const [activitySearch, setActivitySearch] = useState('');
 
+  // Manual score adjustment state
+  const [scoringMember, setScoringMember] = useState<DoanVien | null>(null);
+  const [scoringType, setScoringType] = useState<'Cộng' | 'Trừ'>('Cộng');
+  const [scoringAmount, setScoringAmount] = useState<number>(10);
+  const [scoringReason, setScoringReason] = useState<string>('Tích cực tham gia hoạt động, phong trào');
+  const [customScoringReason, setCustomScoringReason] = useState<string>('');
+
   // Modals state
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [editingMember, setEditingMember] = useState<DoanVien | null>(null);
@@ -402,6 +409,75 @@ export default function AdminDashboard({
         );
       },
       currentlyLocked ? 'info' : 'danger'
+    );
+  };
+
+  // Submit manual scoring form
+  const handleSaveScoring = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!scoringMember) return;
+    
+    const finalReason = scoringReason === 'Khác (nhập chi tiết)' 
+      ? customScoringReason.trim() 
+      : scoringReason;
+      
+    if (!finalReason) {
+      onShowNotification('Vui lòng nhập lý do cụ thể!', 'error');
+      return;
+    }
+    
+    if (scoringAmount <= 0) {
+      onShowNotification('Số điểm phải lớn hơn 0!', 'error');
+      return;
+    }
+
+    const pointsDiff = scoringType === 'Cộng' ? scoringAmount : -scoringAmount;
+    
+    // Create history entry
+    const newHistoryEntry = {
+      id: `score-his-${Date.now()}`,
+      nguoiThucHien: currentUser.email || 'Admin',
+      thoiGian: new Date().toISOString(),
+      loai: scoringType,
+      soDiem: scoringAmount,
+      lyDo: finalReason
+    };
+
+    triggerConfirm(
+      scoringType === 'Cộng' ? 'Cộng điểm rèn luyện' : 'Trừ điểm rèn luyện',
+      `Xác nhận ${scoringType === 'Cộng' ? 'cộng' : 'trừ'} ${scoringAmount} điểm cho đoàn viên "${scoringMember.hoTen}" với lý do: "${finalReason}"?`,
+      () => {
+        setMembers(prev => prev.map(m => {
+          if (m.id === scoringMember.id) {
+            const updatedHistory = m.lichSuDiem ? [...m.lichSuDiem, newHistoryEntry] : [newHistoryEntry];
+            const updatedScore = Math.max(0, m.diemTichLuy + pointsDiff);
+            return {
+              ...m,
+              diemTichLuy: updatedScore,
+              lichSuDiem: updatedHistory
+            };
+          }
+          return m;
+        }));
+
+        onShowNotification(`Đã ${scoringType === 'Cộng' ? 'cộng' : 'trừ'} ${scoringAmount} điểm cho đoàn viên ${scoringMember.hoTen}`, 'success');
+        
+        // Update the current scoring member in state so the history logs list refreshes inside the modal!
+        setScoringMember(prev => {
+          if (!prev) return null;
+          const updatedHistory = prev.lichSuDiem ? [...prev.lichSuDiem, newHistoryEntry] : [newHistoryEntry];
+          const updatedScore = Math.max(0, prev.diemTichLuy + pointsDiff);
+          return {
+            ...prev,
+            diemTichLuy: updatedScore,
+            lichSuDiem: updatedHistory
+          };
+        });
+
+        // Reset inputs
+        setScoringAmount(10);
+        setCustomScoringReason('');
+      }
     );
   };
 
@@ -1793,6 +1869,20 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                           <td className="p-4 whitespace-nowrap text-center">
                             <div className="flex items-center justify-center gap-2">
                               <button
+                                id={`adjust-points-btn-${m.id}`}
+                                onClick={() => {
+                                  setScoringMember(m);
+                                  setScoringType('Cộng');
+                                  setScoringAmount(10);
+                                  setScoringReason('Tích cực tham gia hoạt động, phong trào');
+                                  setCustomScoringReason('');
+                                }}
+                                className="p-1 text-amber-600 hover:bg-amber-50 rounded transition-colors cursor-pointer"
+                                title="Cộng/Trừ Điểm Thủ Công"
+                              >
+                                <Award className="h-4 w-4" />
+                              </button>
+                              <button
                                 id={`edit-member-btn-${m.id}`}
                                 onClick={() => handleOpenEditMember(m)}
                                 className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors cursor-pointer"
@@ -1855,6 +1945,19 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                         </div>
                         
                         <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              setScoringMember(m);
+                              setScoringType('Cộng');
+                              setScoringAmount(10);
+                              setScoringReason('Tích cực tham gia hoạt động, phong trào');
+                              setCustomScoringReason('');
+                            }}
+                            className="p-1 text-amber-600 hover:bg-amber-50 rounded cursor-pointer"
+                            title="Cộng/Trừ Điểm Thủ Công"
+                          >
+                            <Award className="h-3.5 w-3.5" />
+                          </button>
                           <button
                             onClick={() => handleOpenEditMember(m)}
                             className="p-1 text-blue-600 hover:bg-blue-50 rounded cursor-pointer"
@@ -2586,6 +2689,183 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
         )}
 
       </main>
+
+      {/* MANUAL SCORE ADJUSTMENT DIALOG MODAL */}
+      {scoringMember && (
+        <div 
+          id="scoring-modal-overlay" 
+          onClick={() => setScoringMember(null)}
+          className="fixed inset-0 z-50 flex justify-center items-start overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm cursor-pointer sm:items-center"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-4xl rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden cursor-default my-auto flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100"
+          >
+            {/* Form side (left) */}
+            <div className="flex-1 p-6 space-y-4">
+              <div className="bg-gradient-to-r from-amber-500 to-amber-600 -mx-6 -mt-6 px-6 py-4 text-white flex items-center justify-between">
+                <div>
+                  <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2">
+                    <Award className="h-4 w-4 shrink-0" />
+                    CỘNG/TRỪ ĐIỂM THỦ CÔNG
+                  </h3>
+                  <p className="text-[10px] text-amber-50/90 mt-0.5">Đoàn viên: <strong className="text-white font-semibold">{scoringMember.hoTen}</strong> ({scoringMember.maDoanVien})</p>
+                </div>
+                <button
+                  id="close-scoring-modal-btn"
+                  onClick={() => setScoringMember(null)}
+                  type="button"
+                  className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-sm font-black transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-sm md:hidden"
+                  title="Đóng"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveScoring} className="space-y-4 mt-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Loại điều chỉnh</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setScoringType('Cộng')}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        scoringType === 'Cộng'
+                          ? 'bg-emerald-50 border-2 border-emerald-500 text-emerald-700'
+                          : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="text-sm font-extrabold">+</span> Cộng điểm
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScoringType('Trừ')}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        scoringType === 'Trừ'
+                          ? 'bg-red-50 border-2 border-red-500 text-red-700'
+                          : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="text-sm font-extrabold">-</span> Trừ điểm
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Số điểm rèn luyện</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    max={100}
+                    value={scoringAmount}
+                    onChange={(e) => setScoringAmount(Math.max(1, Number(e.target.value)))}
+                    className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs focus:border-amber-500 focus:outline-none"
+                    placeholder="VD: 10"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Lý do cụ thể</label>
+                  <select
+                    value={scoringReason}
+                    onChange={(e) => setScoringReason(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs focus:border-amber-500 focus:outline-none"
+                  >
+                    <option value="Tích cực tham gia hoạt động, phong trào">Tích cực tham gia hoạt động, phong trào</option>
+                    <option value="Hỗ trợ Ban tổ chức các sự kiện hè">Hỗ trợ Ban tổ chức các sự kiện hè</option>
+                    <option value="Đạt giải cuộc thi rèn luyện, năng khiếu">Đạt giải cuộc thi rèn luyện, năng khiếu</option>
+                    <option value="Có sáng kiến, đóng góp ý tưởng xây dựng Chi đoàn">Có sáng kiến, đóng góp ý tưởng xây dựng Chi đoàn</option>
+                    <option value="Vi phạm nội quy, quy định sinh hoạt hè">Vi phạm nội quy, quy định sinh hoạt hè</option>
+                    <option value="Đi muộn, không nghiêm túc trong sinh hoạt">Đi muộn, không nghiêm túc trong sinh hoạt</option>
+                    <option value="Vắng sinh hoạt hè không phép">Vắng sinh hoạt hè không phép</option>
+                    <option value="Khác (nhập chi tiết)">Khác (nhập chi tiết)</option>
+                  </select>
+                </div>
+
+                {scoringReason === 'Khác (nhập chi tiết)' && (
+                  <div className="animate-fade-in">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Chi tiết lý do khác *</label>
+                    <input
+                      type="text"
+                      required
+                      value={customScoringReason}
+                      onChange={(e) => setCustomScoringReason(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs focus:border-amber-500 focus:outline-none"
+                      placeholder="Nhập lý do cụ thể..."
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setScoringMember(null)}
+                    className="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-4 py-1.5 text-xs font-semibold text-slate-600 transition-colors cursor-pointer"
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 text-xs font-bold shadow transition-colors cursor-pointer"
+                  >
+                    Cập nhật điểm
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* History side (right) */}
+            <div className="w-full md:w-[380px] p-6 bg-slate-50/50 flex flex-col justify-between space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 text-slate-400 shrink-0" />
+                  LỊCH SỬ THAY ĐỔI ĐIỂM
+                </h4>
+                <button
+                  onClick={() => setScoringMember(null)}
+                  type="button"
+                  className="h-7 w-7 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 text-xs font-bold transition-all cursor-pointer hidden md:flex"
+                  title="Đóng"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto max-h-[300px] md:max-h-[350px] space-y-2.5 pr-1">
+                {scoringMember.lichSuDiem && scoringMember.lichSuDiem.length > 0 ? (
+                  scoringMember.lichSuDiem.map((log) => (
+                    <div key={log.id} className="p-2.5 rounded-lg border border-slate-100 bg-white text-[11px] space-y-1.5 shadow-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`inline-flex items-center rounded px-1.5 py-0.2 text-[9px] font-black ${
+                          log.loai === 'Cộng'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                            : 'bg-red-50 text-red-700 border border-red-100'
+                        }`}>
+                          {log.loai === 'Cộng' ? `+${log.soDiem}` : `-${log.soDiem}`}đ
+                        </span>
+                        <span className="font-mono text-[9px] text-slate-400 font-semibold">{new Date(log.thoiGian).toLocaleString('vi-VN')}</span>
+                      </div>
+                      <p className="font-bold text-slate-700 leading-normal">{log.lyDo}</p>
+                      <p className="text-[9px] text-slate-400 font-semibold">Người duyệt: {log.nguoiThucHien}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
+                    <Award className="h-8 w-8 text-slate-300 mb-1.5" />
+                    <p className="text-[10px] font-bold">Chưa có thay đổi điểm thủ công</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">Mọi điểm cộng/trừ trực tiếp từ BCH sẽ được lưu trữ lịch sử minh bạch tại đây.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 text-[10px] text-slate-400 font-semibold">
+                Tổng điểm hiện tại: <strong className="text-blue-600 font-black text-xs font-mono">+{scoringMember.diemTichLuy} Điểm</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MEMBER CREATE/EDIT DIALOG MODAL */}
       {showMemberModal && (

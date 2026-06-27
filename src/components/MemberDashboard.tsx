@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import AnimatedCounter from './AnimatedCounter';
-import { DoanVien, HoatDong, MinhChung, User } from '../types';
+import { DoanVien, HoatDong, MinhChung, User, TruongHoc } from '../types';
 import { TRUONG_LIST } from '../data/mockData';
 import { compressAndResizeImage } from '../utils/image';
 import { 
@@ -20,6 +20,7 @@ interface MemberDashboardProps {
   activities: HoatDong[];
   proofs: MinhChung[];
   setProofs: React.Dispatch<React.SetStateAction<MinhChung[]>>;
+  truongHoc?: TruongHoc[];
   onShowNotification: (msg: string, type: 'success' | 'error') => void;
 }
 
@@ -32,6 +33,7 @@ export default function MemberDashboard({
   activities,
   proofs,
   setProofs,
+  truongHoc = [],
   onShowNotification
 }: MemberDashboardProps) {
 
@@ -39,6 +41,13 @@ export default function MemberDashboard({
   const currentMember = useMemo(() => {
     return members.find(m => m.id === currentUser.doanVienId) || members[0];
   }, [members, currentUser]);
+
+  const activeSchools = useMemo(() => {
+    if (truongHoc && truongHoc.length > 0) {
+      return truongHoc.map(t => t.tenTruong);
+    }
+    return TRUONG_LIST;
+  }, [truongHoc]);
 
   const [activeTab, setActiveTab] = useState<'profile' | 'activities' | 'submit' | 'history'>('profile');
   
@@ -571,7 +580,7 @@ export default function MemberDashboard({
                       onChange={(e) => setEditForm(prev => ({ ...prev, truong: e.target.value }))}
                       className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
                     >
-                      {TRUONG_LIST.map(t => (
+                      {activeSchools.map(t => (
                         <option key={t} value={t}>{t}</option>
                       ))}
                     </select>
@@ -685,7 +694,7 @@ export default function MemberDashboard({
                     <span className="font-bold block text-slate-800">{currentMember.chiDoan}</span>
                   </div>
 
-                  <div className="space-y-1 col-span-1 sm:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
                     <span className="font-semibold text-slate-400">Trường THPT lớp 12 học bạ:</span>
                     <span className="font-bold block text-slate-800">{currentMember.truong}</span>
                   </div>
@@ -714,6 +723,46 @@ export default function MemberDashboard({
                 </div>
               </div>
             )}
+
+            {/* Manual score adjustment history section */}
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm space-y-4 animate-fade-in">
+              <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <History className="h-4 w-4 text-amber-500 shrink-0" />
+                Lịch sử điều chỉnh điểm rèn luyện thủ công
+              </h3>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Danh sách các điểm rèn luyện được cộng hoặc trừ trực tiếp từ Bí thư Chi đoàn hoặc Ban Chấp hành với lý do cụ thể (tuyên dương, khen thưởng, vi phạm kỷ luật...).
+              </p>
+
+              {currentMember.lichSuDiem && currentMember.lichSuDiem.length > 0 ? (
+                <div className="overflow-hidden rounded-xl border border-slate-100 divide-y divide-slate-150">
+                  {currentMember.lichSuDiem.map((log) => (
+                    <div key={log.id} className="p-3 bg-slate-50/50 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-black ${
+                            log.loai === 'Cộng' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'
+                          }`}>
+                            {log.loai === 'Cộng' ? `+${log.soDiem}` : `-${log.soDiem}`} điểm
+                          </span>
+                          <span className="font-semibold text-slate-700">{log.lyDo}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-[10px] text-slate-400 font-medium">
+                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(log.thoiGian).toLocaleString('vi-VN')}</span>
+                          <span>Người thực hiện: <strong className="text-slate-500">{log.nguoiThucHien}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-slate-400 bg-slate-50/50">
+                  <Award className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                  <p className="text-[11px] font-bold">Chưa có lịch sử thay đổi điểm thủ công</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Mọi điểm thưởng rèn luyện trực tiếp từ BCH sẽ được ghi nhận tại đây</p>
+                </div>
+              )}
+            </div>
 
             {/* Quick action buttons for mobile */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">

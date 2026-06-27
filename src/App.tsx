@@ -421,6 +421,7 @@ export default function App() {
               activities={activities}
               proofs={proofs}
               setProofs={setProofs}
+              truongHoc={truongHoc}
               onShowNotification={showNotification}
             />
           </motion.div>

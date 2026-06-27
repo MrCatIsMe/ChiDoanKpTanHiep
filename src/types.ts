@@ -1,3 +1,12 @@
+export interface DiemLichSu {
+  id: string;
+  nguoiThucHien: string;
+  thoiGian: string;
+  loai: 'Cộng' | 'Trừ';
+  soDiem: number;
+  lyDo: string;
+}
+
 export interface DoanVien {
   id: string;
   maDoanVien: string;
@@ -14,6 +23,7 @@ export interface DoanVien {
   trangThai: 'Đang hoạt động' | 'Tạm ngưng' | 'Trưởng thành Đoàn';
   diemTichLuy: number;
   isLocked?: boolean;
+  lichSuDiem?: DiemLichSu[];
 }
 
 export interface HoatDong {
