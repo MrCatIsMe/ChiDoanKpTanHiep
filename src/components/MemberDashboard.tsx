@@ -1109,7 +1109,14 @@ export default function MemberDashboard({
                             </td>
                             <td className="p-4 text-xs text-slate-500 max-w-xs">
                               {p.status === 'Đã duyệt' && (
-                                <span className="text-emerald-600 font-semibold">✓ Đã phê chuẩn cộng điểm rèn luyện!</span>
+                                <div className="space-y-1">
+                                  <span className="text-emerald-600 font-semibold block">✓ Đã phê chuẩn cộng điểm rèn luyện!</span>
+                                  {p.rejectedReason && (
+                                    <p className="text-emerald-700 font-bold bg-emerald-50 p-1.5 rounded text-[10px] border border-emerald-100">
+                                      Ghi chú duyệt: "{p.rejectedReason}"
+                                    </p>
+                                  )}
+                                </div>
                               )}
                               {p.status === 'Không đạt' && (
                                 <p className="text-red-500 font-bold bg-red-50 p-1.5 rounded text-[10px] border border-red-100">

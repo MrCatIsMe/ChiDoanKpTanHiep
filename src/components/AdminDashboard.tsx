@@ -782,11 +782,13 @@ export default function AdminDashboard({
       setProofs(prev => prev.map(p => p.id === proofId ? { 
         ...p, 
         status: 'Đã duyệt', 
+        rejectedReason: rejectReason.trim() || undefined,
         approvedAt: new Date().toISOString().replace('T', ' ').substring(0, 16) 
       } : p));
       
       onShowNotification(`Đã duyệt minh chứng. Cộng ${activity.diemCong} điểm cho đoàn viên ${student.hoTen}`, 'success');
       setReviewingProof(null);
+      setRejectReason('');
     }
   };
 
@@ -3383,14 +3385,14 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                   <div className="space-y-3">
                     <form onSubmit={handleRejectProof} className="space-y-2">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        Nếu từ chối, hãy ghi rõ lý do để đoàn viên khắc phục:
+                        Ghi chú duyệt hoặc lý do từ chối (Đoàn viên đều sẽ nhận được):
                       </label>
                       <input
                         type="text"
-                        placeholder="Nêu lý do (VD: Sai trang phục, thiếu ảnh timemark...)"
+                        placeholder="Nêu lý do từ chối hoặc lời khen, ghi chú duyệt..."
                         value={rejectReason}
                         onChange={(e) => setRejectReason(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs focus:border-red-500 focus:outline-none"
+                        className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs focus:border-[#005691] focus:outline-none"
                       />
                       
                       <div className="flex items-center gap-2 pt-2">
@@ -3420,7 +3422,9 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                       Trạng thái: {reviewingProof.status}
                     </p>
                     {reviewingProof.rejectedReason && (
-                      <p className="text-red-500 italic mt-1">"Lý do từ chối: {reviewingProof.rejectedReason}"</p>
+                      <p className={`italic mt-1 font-medium ${reviewingProof.status === 'Đã duyệt' ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {reviewingProof.status === 'Đã duyệt' ? 'Ghi chú duyệt: ' : 'Lý do từ chối: '}"{reviewingProof.rejectedReason}"
+                      </p>
                     )}
                   </div>
                 )}
