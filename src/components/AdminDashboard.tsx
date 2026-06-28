@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Users, Calendar, FileCheck, FileBarChart, Settings, 
   Plus, Edit, Trash2, Search, Filter, Download, Upload, Check, X, 
   TrendingUp, Award, MapPin, Clock, CalendarIcon, CheckCircle2, AlertTriangle, HelpCircle,
-  LogOut, Phone, Mail, ChevronRight, UserPlus, FileSpreadsheet, Eye, EyeOff, Info, School,
+  LogOut, Phone, Mail, ChevronRight, UserPlus, FileSpreadsheet, Eye, Info, School,
   Lock, Unlock, Printer, FileText, Home, KeyRound, Newspaper
 } from 'lucide-react';
 
@@ -872,17 +872,6 @@ export default function AdminDashboard({
       currentLocked 
         ? `Đã mở khóa điểm danh cho hoạt động: "${title}"` 
         : `Đã khóa điểm danh cho hoạt động: "${title}"`, 
-      'success'
-    );
-  };
-
-  // Toggle show/hide individual activity on landing page & member dashboard
-  const handleToggleShowActivity = (id: string, currentVisible: boolean, title: string) => {
-    setActivities(prev => prev.map(a => a.id === id ? { ...a, hienThi: !currentVisible } : a));
-    onShowNotification(
-      currentVisible
-        ? `Đã ẩn hoạt động: "${title}" khỏi Trang chủ và Trang cá nhân!`
-        : `Đã hiển thị hoạt động: "${title}" trên Trang chủ và Trang cá nhân!`,
       'success'
     );
   };
@@ -2222,11 +2211,6 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                       <span className="absolute top-2.5 left-2.5 rounded-full bg-slate-900/85 backdrop-blur-md px-2 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
                         {act.loai}
                       </span>
-                      {act.hienThi === false && (
-                        <span className="absolute bottom-2.5 left-2.5 rounded-full bg-slate-700/90 backdrop-blur-md px-2 py-0.5 text-[9px] font-bold text-white flex items-center gap-1 shadow-sm uppercase tracking-wider">
-                          <EyeOff className="h-2.5 w-2.5" /> Đã Ẩn
-                        </span>
-                      )}
                       {act.locked ? (
                         <span className="absolute top-2.5 right-2.5 rounded-full bg-red-600 px-2.5 py-0.5 text-[9px] font-extrabold text-white flex items-center gap-1 shadow-sm uppercase tracking-wide">
                           <Lock className="h-2.5 w-2.5" /> Đã Khóa
@@ -2299,28 +2283,6 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                             <>
                               <Lock className="h-3.5 w-3.5" />
                               Khóa nhận
-                            </>
-                          )}
-                        </button>
-                        <button
-                          id={`toggle-show-act-btn-${act.id}`}
-                          onClick={() => handleToggleShowActivity(act.id, act.hienThi !== false, act.ten)}
-                          className={`rounded-lg p-1.5 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all border ${
-                            act.hienThi !== false
-                              ? 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-800'
-                              : 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-[#005691]'
-                          }`}
-                          title={act.hienThi !== false ? "Ẩn hoạt động khỏi Trang chủ & Cá nhân" : "Hiện hoạt động trên Trang chủ & Cá nhân"}
-                        >
-                          {act.hienThi !== false ? (
-                            <>
-                              <EyeOff className="h-3.5 w-3.5" />
-                              Ẩn HĐ
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="h-3.5 w-3.5" />
-                              Hiện HĐ
                             </>
                           )}
                         </button>

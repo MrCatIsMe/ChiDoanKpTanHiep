@@ -53,26 +53,15 @@ export default function MemberDashboard({
     return TRUONG_LIST;
   }, [truongHoc]);
 
-  const visibleActivities = useMemo(() => {
-    return activities.filter(a => a.hienThi !== false);
-  }, [activities]);
-
   const [activeTab, setActiveTab] = useState<'profile' | 'activities' | 'submit' | 'history' | 'news'>('profile');
   
   // Reading post modal state
   const [readingPost, setReadingPost] = useState<BaiViet | null>(null);
 
   // Submit proof form state
-  const [submitActivityId, setSubmitActivityId] = useState('');
+  const [submitActivityId, setSubmitActivityId] = useState(activities[0]?.id || '');
   const [submitDesc, setSubmitDesc] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-  // Sync initial submitActivityId
-  React.useEffect(() => {
-    if (visibleActivities.length > 0 && !submitActivityId) {
-      setSubmitActivityId(visibleActivities[0].id);
-    }
-  }, [visibleActivities, submitActivityId]);
 
   const selectedActivity = useMemo(() => {
     return activities.find(a => a.id === submitActivityId);
@@ -834,7 +823,7 @@ export default function MemberDashboard({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {visibleActivities.map(act => {
+              {activities.map(act => {
                 // Check if already submitted
                 const hasSubmission = proofs.find(p => p.doanVienId === currentMember.id && p.hoatDongId === act.id);
                 
@@ -966,7 +955,7 @@ export default function MemberDashboard({
                   className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
                 >
                   <option value="">-- Chọn hoạt động nộp minh chứng --</option>
-                  {visibleActivities.map(a => (
+                  {activities.map(a => (
                     <option key={a.id} value={a.id}>
                       {a.ten} (+{a.diemCong} điểm rèn luyện) {a.locked ? '(ĐÃ KHÓA)' : ''}
                     </option>

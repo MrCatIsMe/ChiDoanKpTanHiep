@@ -313,7 +313,7 @@ export default function LandingPage({
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {activities.filter(act => act.hienThi !== false).map((act) => (
+            {activities.map((act) => (
               <div 
                 id={`landing-act-card-${act.id}`}
                 key={act.id} 
