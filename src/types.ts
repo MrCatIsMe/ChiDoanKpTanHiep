@@ -37,6 +37,7 @@ export interface HoatDong {
   diemCong: number;
   loai: 'Sinh hoạt hè' | 'Tình nguyện' | 'Lao động cộng đồng' | 'Chuyên đề' | string;
   locked?: boolean;
+  hienThi?: boolean; // true hoặc undefined = hiển thị, false = ẩn
 }
 
 export interface MinhChung {
@@ -69,5 +70,17 @@ export interface TruongHoc {
   hieuTruong: string;
   sdtLienHe: string;
   moTa?: string;
+}
+
+export interface BaiViet {
+  id: string;
+  tieude: string;
+  tomtat: string;
+  noidung: string;
+  anh: string;
+  ngayDang: string;
+  nguoiDang: string;
+  luotXem: number;
+  ghim?: boolean;
 }
 

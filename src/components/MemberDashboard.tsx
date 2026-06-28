@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import AnimatedCounter from './AnimatedCounter';
-import { DoanVien, HoatDong, MinhChung, User, TruongHoc } from '../types';
+import { DoanVien, HoatDong, MinhChung, User, TruongHoc, BaiViet } from '../types';
 import { TRUONG_LIST } from '../data/mockData';
 import { compressAndResizeImage } from '../utils/image';
 import { 
   User as UserIcon, Calendar, FileCheck, History, Award, MapPin, 
   Clock, LogOut, CheckCircle2, AlertTriangle, HelpCircle, ChevronRight,
   Camera, Upload, FileText, Check, ShieldAlert, BookOpen, Star, Phone, Mail,
-  Lock, Unlock, Edit, Home
+  Lock, Unlock, Edit, Home, Newspaper
 } from 'lucide-react';
 
 interface MemberDashboardProps {
@@ -22,6 +22,8 @@ interface MemberDashboardProps {
   setProofs: React.Dispatch<React.SetStateAction<MinhChung[]>>;
   truongHoc?: TruongHoc[];
   onShowNotification: (msg: string, type: 'success' | 'error') => void;
+  posts?: BaiViet[];
+  setPosts?: React.Dispatch<React.SetStateAction<BaiViet[]>>;
 }
 
 export default function MemberDashboard({
@@ -34,7 +36,9 @@ export default function MemberDashboard({
   proofs,
   setProofs,
   truongHoc = [],
-  onShowNotification
+  onShowNotification,
+  posts = [],
+  setPosts
 }: MemberDashboardProps) {
 
   // Current logged in member profile
@@ -49,12 +53,26 @@ export default function MemberDashboard({
     return TRUONG_LIST;
   }, [truongHoc]);
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'activities' | 'submit' | 'history'>('profile');
+  const visibleActivities = useMemo(() => {
+    return activities.filter(a => a.hienThi !== false);
+  }, [activities]);
+
+  const [activeTab, setActiveTab] = useState<'profile' | 'activities' | 'submit' | 'history' | 'news'>('profile');
   
+  // Reading post modal state
+  const [readingPost, setReadingPost] = useState<BaiViet | null>(null);
+
   // Submit proof form state
-  const [submitActivityId, setSubmitActivityId] = useState(activities[0]?.id || '');
+  const [submitActivityId, setSubmitActivityId] = useState('');
   const [submitDesc, setSubmitDesc] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Sync initial submitActivityId
+  React.useEffect(() => {
+    if (visibleActivities.length > 0 && !submitActivityId) {
+      setSubmitActivityId(visibleActivities[0].id);
+    }
+  }, [visibleActivities, submitActivityId]);
 
   const selectedActivity = useMemo(() => {
     return activities.find(a => a.id === submitActivityId);
@@ -383,6 +401,17 @@ export default function MemberDashboard({
                 {studentStats.totalSubmitted}
               </span>
             )}
+          </button>
+
+          <button
+            id="member-tab-news"
+            onClick={() => setActiveTab('news')}
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'news' ? 'bg-[#005691] text-white' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Newspaper className="h-4 w-4 shrink-0" />
+            <span>Tin tức & Bảng tin</span>
           </button>
         </nav>
 
@@ -805,7 +834,7 @@ export default function MemberDashboard({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {activities.map(act => {
+              {visibleActivities.map(act => {
                 // Check if already submitted
                 const hasSubmission = proofs.find(p => p.doanVienId === currentMember.id && p.hoatDongId === act.id);
                 
@@ -937,7 +966,7 @@ export default function MemberDashboard({
                   className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
                 >
                   <option value="">-- Chọn hoạt động nộp minh chứng --</option>
-                  {activities.map(a => (
+                  {visibleActivities.map(a => (
                     <option key={a.id} value={a.id}>
                       {a.ten} (+{a.diemCong} điểm rèn luyện) {a.locked ? '(ĐÃ KHÓA)' : ''}
                     </option>
@@ -1138,6 +1167,92 @@ export default function MemberDashboard({
           </motion.div>
         )}
 
+        {/* TAB: NEWS / BULLETIN */}
+        {activeTab === 'news' && (
+          <motion.div
+            key="news"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-6 pb-20 md:pb-0"
+          >
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+              <h2 className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                <Newspaper className="h-5 w-5 text-[#005691]" />
+                Bản tin & Tin tức Chi Đoàn
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Cập nhật hoạt động Đoàn, thông báo lịch sinh hoạt hè và tuyên dương gương sáng đoàn viên
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {posts.map(post => (
+                <div 
+                  key={post.id} 
+                  className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all h-[400px] cursor-pointer group"
+                  onClick={() => {
+                    setReadingPost(post);
+                    post.luotXem = (post.luotXem || 0) + 1;
+                  }}
+                >
+                  <div className="h-44 w-full relative overflow-hidden bg-slate-100 shrink-0">
+                    <img 
+                      src={post.anh} 
+                      alt={post.tieude} 
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                    />
+                    {post.ghim && (
+                      <span className="absolute top-3 left-3 rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-black text-white uppercase tracking-wider animate-pulse shadow-sm">
+                        📌 GHIM
+                      </span>
+                    )}
+                    <span className="absolute bottom-3 right-3 rounded-full bg-slate-900/75 backdrop-blur-md px-2 py-0.5 text-[9px] font-bold text-white uppercase">
+                      {post.nguoiDang}
+                    </span>
+                  </div>
+
+                  <div className="p-4 flex flex-col flex-1 min-h-0">
+                    <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold mb-1.5 shrink-0">
+                      <span className="flex items-center gap-1 font-mono">
+                        <Clock className="h-3.5 w-3.5" />
+                        {post.ngayDang}
+                      </span>
+                      <span className="flex items-center gap-1 font-mono">
+                        <UserIcon className="h-3.5 w-3.5" />
+                        {post.luotXem || 0} lượt xem
+                      </span>
+                    </div>
+
+                    <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 line-clamp-2 hover:text-[#005691] transition-colors shrink-0 mb-1 leading-snug">
+                      {post.tieude}
+                    </h3>
+
+                    <p className="text-xs text-slate-500 line-clamp-4 flex-1 overflow-hidden font-medium leading-relaxed">
+                      {post.tomtat}
+                    </p>
+
+                    <div className="flex items-center gap-1 text-xs font-black text-[#005691] mt-3 pt-3 border-t border-slate-50 shrink-0 group-hover:gap-2 transition-all">
+                      <span>Xem nội dung chi tiết</span>
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {posts.length === 0 && (
+                <div className="col-span-full rounded-2xl bg-slate-50 border border-dashed border-slate-200 p-12 text-center text-slate-400">
+                  <Newspaper className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                  <p className="text-xs font-bold text-slate-500">Bảng tin Chi Đoàn trống</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Vui lòng quay lại sau để cập nhật các tin tức mới nhất từ BCH Chi Đoàn</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
       </main>
 
       {/* MOBILE BOTTOM NAVIGATION BAR */}
@@ -1190,7 +1305,118 @@ export default function MemberDashboard({
             </span>
           )}
         </button>
+
+        <button
+          id="mobile-nav-news"
+          onClick={() => setActiveTab('news')}
+          className={`flex flex-col items-center gap-1 cursor-pointer py-1.5 transition-all w-16 ${
+            activeTab === 'news' ? 'text-[#005691] scale-105' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <Newspaper className="h-5 w-5" />
+          <span className="text-[10px] font-black tracking-tight">Tin tức</span>
+        </button>
       </div>
+
+      {/* READING POST DETAIL DIALOG MODAL */}
+      {readingPost && (
+        <div 
+          id="member-post-viewer-modal" 
+          onClick={() => setReadingPost(null)}
+          className="fixed inset-0 z-50 flex justify-center items-start overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm cursor-pointer sm:items-center"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-3xl rounded-3xl bg-white shadow-2xl border border-slate-100 overflow-hidden cursor-default my-8 flex flex-col max-h-[85vh]"
+          >
+            {/* Header image banner */}
+            <div className="h-64 w-full relative bg-slate-100 shrink-0">
+              <img 
+                src={readingPost.anh} 
+                alt={readingPost.tieude} 
+                className="h-full w-full object-cover" 
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent"></div>
+              
+              <button
+                id="close-member-post-viewer"
+                onClick={() => setReadingPost(null)}
+                type="button"
+                className="absolute top-4 right-4 h-8 w-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white text-sm font-black transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-md border border-white/10 z-10"
+                title="Đóng bài viết"
+              >
+                ✕
+              </button>
+
+              {/* Title inside image banner at bottom overlay */}
+              <div className="absolute bottom-0 inset-x-0 p-6 text-white space-y-2">
+                <div className="flex flex-wrap items-center gap-3.5 text-[10px] font-black text-blue-200">
+                  {readingPost.ghim && (
+                    <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-white animate-pulse">
+                      GHIM QUAN TRỌNG
+                    </span>
+                  )}
+                  <span className="bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-white uppercase tracking-wider">
+                    {readingPost.nguoiDang}
+                  </span>
+                  <span className="font-mono flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    {readingPost.ngayDang}
+                  </span>
+                  <span className="font-mono flex items-center gap-1.5">
+                    <UserIcon className="h-3.5 w-3.5" />
+                    {readingPost.luotXem || 0} lượt xem
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg md:text-xl font-black leading-snug tracking-tight drop-shadow">
+                  {readingPost.tieude}
+                </h3>
+              </div>
+            </div>
+
+            {/* Scrollable post text content with styled formatting */}
+            <div className="p-6 md:p-8 overflow-y-auto flex-1 text-slate-700 leading-relaxed text-xs sm:text-sm font-medium space-y-4 prose max-w-none">
+              {/* If tomtat exists and is different from content, show it as lead paragraph */}
+              {readingPost.tomtat && readingPost.tomtat.length > 5 && (
+                <p className="text-slate-800 font-extrabold border-l-4 border-[#005691] pl-3.5 py-1.5 bg-slate-50 rounded-r-lg leading-relaxed">
+                  {readingPost.tomtat}
+                </p>
+              )}
+              
+              {/* Formatted body paragraph splits */}
+              <div className="whitespace-pre-wrap leading-relaxed space-y-4">
+                {readingPost.noidung.split('\n\n').map((paragraph, i) => {
+                  if (paragraph.trim().startsWith('- ') || paragraph.trim().startsWith('* ')) {
+                    return (
+                      <ul key={i} className="list-disc pl-5 space-y-1 my-2">
+                        {paragraph.split('\n').map((li, j) => (
+                          <li key={j} className="text-slate-600 font-medium">{li.trim().replace(/^[-*]\s+/, '')}</li>
+                        ))}
+                      </ul>
+                    );
+                  }
+                  return (
+                    <p key={i} className="text-slate-600 leading-relaxed font-medium">
+                      {paragraph}
+                    </p>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer action */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+              <button
+                onClick={() => setReadingPost(null)}
+                className="rounded-xl bg-[#005691] hover:bg-[#004270] text-white px-5 py-2 text-xs font-bold transition-all shadow-sm cursor-pointer"
+              >
+                Đóng cửa sổ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

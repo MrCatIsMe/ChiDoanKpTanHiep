@@ -2,15 +2,15 @@ import React, { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'motion/react';
 import AnimatedCounter from './AnimatedCounter';
-import { DoanVien, HoatDong, MinhChung, User, TruongHoc } from '../types';
+import { DoanVien, HoatDong, MinhChung, User, TruongHoc, BaiViet } from '../types';
 import { TRUONG_LIST, CHI_DOAN_LIST } from '../data/mockData';
 import { compressAndResizeImage } from '../utils/image';
 import { 
   LayoutDashboard, Users, Calendar, FileCheck, FileBarChart, Settings, 
   Plus, Edit, Trash2, Search, Filter, Download, Upload, Check, X, 
   TrendingUp, Award, MapPin, Clock, CalendarIcon, CheckCircle2, AlertTriangle, HelpCircle,
-  LogOut, Phone, Mail, ChevronRight, UserPlus, FileSpreadsheet, Eye, Info, School,
-  Lock, Unlock, Printer, FileText, Home, KeyRound
+  LogOut, Phone, Mail, ChevronRight, UserPlus, FileSpreadsheet, Eye, EyeOff, Info, School,
+  Lock, Unlock, Printer, FileText, Home, KeyRound, Newspaper
 } from 'lucide-react';
 
 const ANONYMOUS_AVATAR = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="%23f1f5f9"/><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="%23cbd5e1"/></svg>';
@@ -32,6 +32,8 @@ interface AdminDashboardProps {
   onShowNotification: (msg: string, type: 'success' | 'error') => void;
   users?: User[];
   setUsers?: React.Dispatch<React.SetStateAction<User[]>>;
+  posts: BaiViet[];
+  setPosts: React.Dispatch<React.SetStateAction<BaiViet[]>>;
 }
 
 export default function AdminDashboard({
@@ -48,10 +50,12 @@ export default function AdminDashboard({
   setTruongHoc,
   onShowNotification,
   users,
-  setUsers
+  setUsers,
+  posts = [],
+  setPosts
 }: AdminDashboardProps) {
   
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'activities' | 'proofs' | 'reports' | 'diaban'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'activities' | 'proofs' | 'reports' | 'diaban' | 'news'>('overview');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
 
@@ -182,6 +186,112 @@ export default function AdminDashboard({
       'danger'
     );
   };
+
+  // --- POSTS (BAI VIET) HANDLERS & STATES ---
+  const [postSearch, setPostSearch] = useState('');
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [editingPost, setEditingPost] = useState<BaiViet | null>(null);
+  const [postForm, setPostForm] = useState<Omit<BaiViet, 'id' | 'luotXem' | 'ngayDang'>>({
+    tieude: '',
+    tomtat: '',
+    noidung: '',
+    anh: '',
+    nguoiDang: 'BCH Đoàn Phường',
+    ghim: false
+  });
+
+  const handleOpenAddPost = () => {
+    setEditingPost(null);
+    setPostForm({
+      tieude: '',
+      tomtat: '',
+      noidung: '',
+      anh: '',
+      nguoiDang: 'BCH Đoàn Phường',
+      ghim: false
+    });
+    setShowPostModal(true);
+  };
+
+  const handleOpenEditPost = (post: BaiViet) => {
+    setEditingPost(post);
+    setPostForm({
+      tieude: post.tieude,
+      tomtat: post.tomtat,
+      noidung: post.noidung,
+      anh: post.anh,
+      nguoiDang: post.nguoiDang,
+      ghim: !!post.ghim
+    });
+    setShowPostModal(true);
+  };
+
+  const handleSavePost = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!postForm.tieude.trim() || !postForm.noidung.trim()) {
+      onShowNotification('Vui lòng điền đầy đủ tiêu đề và nội dung bài viết!', 'error');
+      return;
+    }
+
+    const defaultBanner = 'https://images.unsplash.com/photo-1559027615-cd44874e96e4?auto=format&fit=crop&q=80&w=600';
+    const finalBanner = postForm.anh.trim() || defaultBanner;
+
+    if (editingPost) {
+      // Edit existing post
+      const updatedPost: BaiViet = {
+        ...editingPost,
+        tieude: postForm.tieude.trim(),
+        tomtat: postForm.tomtat.trim() || postForm.noidung.replace(/[\#\*\_]/g, '').substring(0, 150).trim() + '...',
+        noidung: postForm.noidung,
+        anh: finalBanner,
+        nguoiDang: postForm.nguoiDang.trim() || 'BCH Đoàn Phường',
+        ghim: postForm.ghim
+      };
+      setPosts(prev => prev.map(p => p.id === editingPost.id ? updatedPost : p));
+      onShowNotification('Cập nhật bài viết thành công!', 'success');
+    } else {
+      // Create new post
+      const newPost: BaiViet = {
+        id: `bv-${Date.now()}`,
+        tieude: postForm.tieude.trim(),
+        tomtat: postForm.tomtat.trim() || postForm.noidung.replace(/[\#\*\_]/g, '').substring(0, 150).trim() + '...',
+        noidung: postForm.noidung,
+        anh: finalBanner,
+        ngayDang: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        nguoiDang: postForm.nguoiDang.trim() || 'BCH Đoàn Phường',
+        luotXem: 0,
+        ghim: postForm.ghim
+      };
+      setPosts(prev => [newPost, ...prev]);
+      onShowNotification('Đăng bài viết mới thành công!', 'success');
+    }
+
+    setShowPostModal(false);
+  };
+
+  const handleDeletePost = (id: string, title: string) => {
+    triggerConfirm(
+      'Xóa bài viết',
+      `Bạn có chắc chắn muốn xóa bài viết "${title}"? Hành động này không thể hoàn tác.`,
+      () => {
+        setPosts(prev => prev.filter(p => p.id !== id));
+        onShowNotification('Đã xóa bài viết thành công!', 'success');
+      },
+      'danger'
+    );
+  };
+
+  const filteredPosts = useMemo(() => {
+    const q = postSearch.trim().toLowerCase();
+    const list = posts || [];
+    if (!q) return list;
+    return list.filter(p => 
+      p.tieude.toLowerCase().includes(q) || 
+      p.tomtat.toLowerCase().includes(q) || 
+      p.noidung.toLowerCase().includes(q) ||
+      p.nguoiDang.toLowerCase().includes(q)
+    );
+  }, [posts, postSearch]);
   
   // Search & Filter state for Members
   const [memberSearch, setMemberSearch] = useState('');
@@ -766,6 +876,17 @@ export default function AdminDashboard({
     );
   };
 
+  // Toggle show/hide individual activity on landing page & member dashboard
+  const handleToggleShowActivity = (id: string, currentVisible: boolean, title: string) => {
+    setActivities(prev => prev.map(a => a.id === id ? { ...a, hienThi: !currentVisible } : a));
+    onShowNotification(
+      currentVisible
+        ? `Đã ẩn hoạt động: "${title}" khỏi Trang chủ và Trang cá nhân!`
+        : `Đã hiển thị hoạt động: "${title}" trên Trang chủ và Trang cá nhân!`,
+      'success'
+    );
+  };
+
   // Approve Proof
   const handleApproveProof = (proofId: string) => {
     const proof = proofs.find(p => p.id === proofId);
@@ -1273,6 +1394,24 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                 </span>
               </button>
 
+              <button
+                onClick={() => {
+                  setActiveTab('news');
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'news' ? 'bg-[#005691] text-white' : 'hover:bg-slate-800 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Newspaper className="h-4 w-4 shrink-0" />
+                  <span>Bảng tin & Bài đăng</span>
+                </div>
+                <span className="px-1.5 py-0.2 text-[9px] rounded-full font-black bg-slate-800 text-slate-300">
+                  {posts.length}
+                </span>
+              </button>
+
 
             </nav>
 
@@ -1406,6 +1545,22 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
             </div>
             <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-black ${activeTab === 'diaban' ? 'bg-white text-blue-900' : 'bg-slate-800 text-slate-300'}`}>
               {truongHoc?.length || 0}
+            </span>
+          </button>
+
+          <button
+            id="tab-btn-news"
+            onClick={() => setActiveTab('news')}
+            className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'news' ? 'bg-[#005691] text-white' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Newspaper className="h-4 w-4 shrink-0" />
+              <span>Bảng tin & Bài đăng</span>
+            </div>
+            <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-black ${activeTab === 'news' ? 'bg-white text-blue-900' : 'bg-slate-800 text-slate-300'}`}>
+              {posts.length}
             </span>
           </button>
 
@@ -2067,6 +2222,11 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                       <span className="absolute top-2.5 left-2.5 rounded-full bg-slate-900/85 backdrop-blur-md px-2 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
                         {act.loai}
                       </span>
+                      {act.hienThi === false && (
+                        <span className="absolute bottom-2.5 left-2.5 rounded-full bg-slate-700/90 backdrop-blur-md px-2 py-0.5 text-[9px] font-bold text-white flex items-center gap-1 shadow-sm uppercase tracking-wider">
+                          <EyeOff className="h-2.5 w-2.5" /> Đã Ẩn
+                        </span>
+                      )}
                       {act.locked ? (
                         <span className="absolute top-2.5 right-2.5 rounded-full bg-red-600 px-2.5 py-0.5 text-[9px] font-extrabold text-white flex items-center gap-1 shadow-sm uppercase tracking-wide">
                           <Lock className="h-2.5 w-2.5" /> Đã Khóa
@@ -2139,6 +2299,28 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                             <>
                               <Lock className="h-3.5 w-3.5" />
                               Khóa nhận
+                            </>
+                          )}
+                        </button>
+                        <button
+                          id={`toggle-show-act-btn-${act.id}`}
+                          onClick={() => handleToggleShowActivity(act.id, act.hienThi !== false, act.ten)}
+                          className={`rounded-lg p-1.5 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all border ${
+                            act.hienThi !== false
+                              ? 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-800'
+                              : 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-[#005691]'
+                          }`}
+                          title={act.hienThi !== false ? "Ẩn hoạt động khỏi Trang chủ & Cá nhân" : "Hiện hoạt động trên Trang chủ & Cá nhân"}
+                        >
+                          {act.hienThi !== false ? (
+                            <>
+                              <EyeOff className="h-3.5 w-3.5" />
+                              Ẩn HĐ
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="h-3.5 w-3.5" />
+                              Hiện HĐ
                             </>
                           )}
                         </button>
@@ -2691,6 +2873,168 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                   <School className="h-10 w-10 mx-auto mb-2 text-slate-300" />
                   <p className="text-xs font-bold">Chưa có trường học liên kết nào được khởi tạo</p>
                   <p className="text-[11px] text-slate-400 mt-1">Nhấp vào "Thêm Trường học mới" để bắt đầu thiết lập</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* TAB: NEWS MANAGEMENT */}
+        {activeTab === 'news' && (
+          <motion.div
+            key="news"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-6"
+          >
+            {/* Top header action block */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+              <div>
+                <h2 className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                  <Newspaper className="h-5 w-5 text-[#005691] shrink-0" />
+                  Bảng tin & Quản lý bài đăng
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Đăng tin tức, thông báo hoạt động Đoàn, tấm gương sáng và các nội dung rèn luyện hè
+                </p>
+              </div>
+              <button
+                onClick={handleOpenAddPost}
+                className="rounded-xl bg-[#005691] hover:bg-[#004b7f] text-white px-4 py-2 text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 shrink-0 cursor-pointer border border-[#005691]/20"
+              >
+                <Plus className="h-4 w-4" />
+                Đăng bài viết mới
+              </button>
+            </div>
+
+            {/* Quick stats for Posts */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="rounded-xl border border-slate-100 bg-white p-4 flex items-center gap-3 shadow-sm">
+                <div className="h-9 w-9 rounded-lg bg-blue-50 text-[#005691] flex items-center justify-center">
+                  <Newspaper className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Tổng số bài viết</p>
+                  <p className="text-lg font-black text-slate-800">{posts.length}</p>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-white p-4 flex items-center gap-3 shadow-sm">
+                <div className="h-9 w-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Award className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Bài viết được ghim</p>
+                  <p className="text-lg font-black text-slate-800">{posts.filter(p => p.ghim).length}</p>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-white p-4 flex items-center gap-3 shadow-sm">
+                <div className="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Eye className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Tổng lượt xem</p>
+                  <p className="text-lg font-black text-slate-800">
+                    {posts.reduce((sum, p) => sum + (p.luotXem || 0), 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Search row */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+              <div className="relative w-full sm:max-w-md">
+                <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm bài viết theo tiêu đề, người đăng, nội dung..."
+                  value={postSearch}
+                  onChange={(e) => setPostSearch(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-9 pr-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#005691]/20 transition-colors"
+                />
+              </div>
+              <div className="text-slate-400 text-xs shrink-0 font-medium">
+                Hiển thị <span className="text-slate-800 font-bold">{filteredPosts.length}</span> / <span className="text-slate-800 font-bold">{posts.length}</span> bài viết
+              </div>
+            </div>
+
+            {/* List of posts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredPosts.map(post => (
+                <div 
+                  key={post.id} 
+                  className="flex flex-col rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden hover:shadow-md transition-all h-[420px]"
+                >
+                  {/* Post Image Banner */}
+                  <div className="h-44 w-full relative bg-slate-100 shrink-0">
+                    <img
+                      src={post.anh}
+                      alt={post.tieude}
+                      className="h-full w-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">
+                      {post.ghim && (
+                        <span className="rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-black text-white uppercase tracking-wider animate-pulse flex items-center gap-0.5 shadow-sm">
+                          📌 GHIM
+                        </span>
+                      )}
+                      <span className="rounded-full bg-slate-900/80 backdrop-blur-md px-2 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
+                        {post.nguoiDang}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Post Content Area */}
+                  <div className="p-4 flex flex-col flex-1 min-h-0">
+                    <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold mb-1.5 shrink-0">
+                      <span className="flex items-center gap-1 font-mono">
+                        <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        {post.ngayDang}
+                      </span>
+                      <span className="flex items-center gap-1 font-mono">
+                        <Eye className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        {post.luotXem || 0} lượt xem
+                      </span>
+                    </div>
+
+                    <h3 className="text-sm font-extrabold text-slate-800 line-clamp-2 hover:text-[#005691] transition-colors shrink-0 mb-1 leading-snug">
+                      {post.tieude}
+                    </h3>
+
+                    <p className="text-xs text-slate-500 line-clamp-4 flex-1 overflow-hidden font-medium leading-relaxed">
+                      {post.tomtat}
+                    </p>
+
+                    {/* Actions bar at bottom of card */}
+                    <div className="flex items-center justify-end gap-2 border-t border-slate-50 pt-3 mt-3 shrink-0">
+                      <button
+                        onClick={() => handleOpenEditPost(post)}
+                        className="rounded-lg hover:bg-amber-50 text-amber-600 hover:text-amber-800 p-1.5 text-xs transition-colors cursor-pointer flex items-center gap-1 font-bold border border-transparent hover:border-amber-200"
+                        title="Sửa"
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                        <span>Sửa</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeletePost(post.id, post.tieude)}
+                        className="rounded-lg hover:bg-red-50 text-red-500 hover:text-red-700 p-1.5 text-xs transition-colors cursor-pointer flex items-center gap-1 font-bold border border-transparent hover:border-red-200"
+                        title="Xóa"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Xóa</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {filteredPosts.length === 0 && (
+                <div className="col-span-full rounded-2xl bg-slate-50 border border-dashed border-slate-200 p-12 text-center text-slate-400">
+                  <Newspaper className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                  <p className="text-xs font-bold text-slate-500">Không tìm thấy bài viết nào phù hợp</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Vui lòng thử từ khóa khác hoặc đăng thêm bài viết mới</p>
                 </div>
               )}
             </div>
@@ -3543,6 +3887,157 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                   className="rounded-lg bg-[#005691] hover:bg-[#004b7f] text-white px-4 py-2 cursor-pointer shadow-sm border border-[#005691]/10"
                 >
                   {editingTruongHoc ? 'Cập nhật' : 'Thêm mới'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* BAI VIET CREATE/EDIT DIALOG MODAL */}
+      {showPostModal && (
+        <div 
+          id="post-modal-overlay" 
+          onClick={() => setShowPostModal(false)}
+          className="fixed inset-0 z-50 flex justify-center items-start overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm cursor-pointer sm:items-center"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden cursor-default my-auto"
+          >
+            <div className="bg-gradient-to-r from-[#005691] to-blue-600 px-6 py-4 text-white flex items-center justify-between">
+              <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider">
+                {editingPost ? `SỬA BÀI VIẾT: ${editingPost.tieude.substring(0, 30)}...` : 'ĐĂNG BÀI VIẾT MỚI'}
+              </h3>
+              <button
+                id="close-post-modal-btn"
+                onClick={() => setShowPostModal(false)}
+                type="button"
+                className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-sm font-black transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-sm"
+                title="Đóng cửa sổ"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePost} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tiêu đề bài viết *</label>
+                  <input
+                    type="text"
+                    required
+                    value={postForm.tieude}
+                    onChange={(e) => setPostForm(prev => ({ ...prev, tieude: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                    placeholder="Ví dụ: Kế hoạch tổ chức Chiến dịch tình nguyện Hoa phượng đỏ 2026"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Người đăng / Tổ chức *</label>
+                  <input
+                    type="text"
+                    required
+                    value={postForm.nguoiDang}
+                    onChange={(e) => setPostForm(prev => ({ ...prev, nguoiDang: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                    placeholder="Ví dụ: BCH Đoàn Phường"
+                  />
+                </div>
+
+                <div className="flex items-center pt-5">
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={postForm.ghim}
+                      onChange={(e) => setPostForm(prev => ({ ...prev, ghim: e.target.checked }))}
+                      className="rounded border-slate-300 text-[#005691] focus:ring-[#005691]/30 h-4 w-4"
+                    />
+                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Ghim bài viết ở trang chủ</span>
+                  </label>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Ảnh bìa bài viết (Link URL hoặc Tải lên ảnh mới)</label>
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={postForm.anh}
+                      onChange={(e) => setPostForm(prev => ({ ...prev, anh: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                      placeholder="Nhập đường dẫn link hình ảnh hoặc tải lên ở dưới..."
+                    />
+                    
+                    <div className="flex items-center gap-2">
+                      <label className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer flex items-center gap-1.5">
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>Tải ảnh từ thiết bị</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                // Use high resolution (1024x1024) and high quality (0.85) to avoid blurry images for posts
+                                const base64 = await compressAndResizeImage(file, 1024, 1024, 0.85);
+                                setPostForm(prev => ({ ...prev, anh: base64 }));
+                                onShowNotification('Đã tải ảnh lên thành công!', 'success');
+                              } catch (err) {
+                                onShowNotification('Lỗi khi nén ảnh!', 'error');
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                      {postForm.anh && (
+                        <div className="h-8 w-14 rounded border border-slate-100 overflow-hidden shrink-0 bg-slate-50">
+                          <img src={postForm.anh} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tóm tắt ngắn (Nếu để trống sẽ tự lấy từ nội dung)</label>
+                  <input
+                    type="text"
+                    value={postForm.tomtat}
+                    onChange={(e) => setPostForm(prev => ({ ...prev, tomtat: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20"
+                    placeholder="Mô tả tóm tắt ngắn về bài viết hiện lên ở bảng tin..."
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nội dung bài viết * (Hỗ trợ Markdown)</label>
+                  <textarea
+                    rows={10}
+                    required
+                    value={postForm.noidung}
+                    onChange={(e) => setPostForm(prev => ({ ...prev, noidung: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 bg-white py-2 px-3 text-xs focus:border-[#005691] focus:outline-none focus:ring-1 focus:ring-[#005691]/20 font-mono leading-relaxed"
+                    placeholder="Nhập nội dung bài viết..."
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setShowPostModal(false)}
+                  className="rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 px-4 py-2 cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-[#005691] hover:bg-[#004b7f] text-white px-4 py-2 cursor-pointer shadow-sm border border-[#005691]/10"
+                >
+                  {editingPost ? 'Cập nhật' : 'Đăng bài'}
                 </button>
               </div>
             </form>

@@ -10,7 +10,7 @@ import {
   deleteDoc, 
   writeBatch 
 } from 'firebase/firestore';
-import { DoanVien, HoatDong, MinhChung, User, TruongHoc } from '../types';
+import { DoanVien, HoatDong, MinhChung, User, TruongHoc, BaiViet } from '../types';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 // Initialize Firebase
@@ -76,6 +76,7 @@ const COLL_HOAT_DONG = 'hoatDong';
 const COLL_MINH_CHUNG = 'minhChung';
 const COLL_TRUONG_HOC = 'truongHoc';
 const COLL_USERS = 'users';
+const COLL_BAI_VIET = 'baiViet';
 
 // --- DOAN VIEN SERVICES ---
 export async function dbGetDoanVien(): Promise<DoanVien[]> {
@@ -232,6 +233,37 @@ export async function dbDeleteUser(id: string): Promise<void> {
   }
 }
 
+// --- BAI VIET SERVICES ---
+export async function dbGetBaiViet(): Promise<BaiViet[]> {
+  try {
+    const querySnapshot = await getDocs(collection(db, COLL_BAI_VIET));
+    const list: BaiViet[] = [];
+    querySnapshot.forEach((doc) => {
+      list.push(doc.data() as BaiViet);
+    });
+    return list;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, COLL_BAI_VIET);
+    return [];
+  }
+}
+
+export async function dbSaveBaiViet(item: BaiViet): Promise<void> {
+  try {
+    await setDoc(doc(db, COLL_BAI_VIET, item.id), item);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `${COLL_BAI_VIET}/${item.id}`);
+  }
+}
+
+export async function dbDeleteBaiViet(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, COLL_BAI_VIET, id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${COLL_BAI_VIET}/${id}`);
+  }
+}
+
 // --- SEED OR BULK SYNC SERVICE ---
 export async function dbBulkSync(data: {
   doanVien: DoanVien[];
@@ -239,6 +271,7 @@ export async function dbBulkSync(data: {
   minhChung: MinhChung[];
   users: User[];
   truongHoc: TruongHoc[];
+  baiViet: BaiViet[];
 }): Promise<void> {
   try {
     // Sync doanVien
@@ -260,6 +293,10 @@ export async function dbBulkSync(data: {
     // Sync truongHoc
     for (const item of data.truongHoc) {
       await dbSaveTruongHoc(item);
+    }
+    // Sync baiViet
+    for (const item of data.baiViet) {
+      await dbSaveBaiViet(item);
     }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, 'bulk-sync');

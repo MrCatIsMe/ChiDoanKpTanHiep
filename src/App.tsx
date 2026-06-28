@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, DoanVien, HoatDong, MinhChung, TruongHoc } from './types';
+import { User, DoanVien, HoatDong, MinhChung, TruongHoc, BaiViet } from './types';
 import { getStoredData, saveStoredData } from './data/mockData';
 import LandingPage from './components/LandingPage';
 import AdminDashboard from './components/AdminDashboard';
@@ -23,6 +23,9 @@ import {
   dbGetUsers, 
   dbSaveUser, 
   dbDeleteUser,
+  dbGetBaiViet,
+  dbSaveBaiViet,
+  dbDeleteBaiViet,
   dbBulkSync,
   testConnection,
   dbGetSettings,
@@ -50,6 +53,7 @@ export default function App() {
   const [proofs, setProofs] = useState<MinhChung[]>(initialData.minhChung);
   const [users, setUsers] = useState<User[]>(initialData.users);
   const [truongHoc, setTruongHoc] = useState<TruongHoc[]>(initialData.truongHoc || []);
+  const [posts, setPosts] = useState<BaiViet[]>(initialData.baiViet || []);
 
   // Firebase status
   const [firebaseConnected, setFirebaseConnected] = useState<boolean | null>(null);
@@ -61,6 +65,7 @@ export default function App() {
   const prevProofsRef = useRef<MinhChung[]>([]);
   const prevUsersRef = useRef<User[]>([]);
   const prevTruongHocRef = useRef<TruongHoc[]>([]);
+  const prevPostsRef = useRef<BaiViet[]>([]);
   const isFirstLoad = useRef(true);
 
   // Global Toast notification state
@@ -88,8 +93,9 @@ export default function App() {
         const fsProofs = await dbGetMinhChung();
         const fsTruongHoc = await dbGetTruongHoc();
         const fsUsers = await dbGetUsers();
+        const fsPosts = await dbGetBaiViet();
 
-        const isDbEmpty = fsMembers.length === 0 && fsActivities.length === 0 && fsTruongHoc.length === 0;
+        const isDbEmpty = fsMembers.length === 0 && fsActivities.length === 0 && fsTruongHoc.length === 0 && fsPosts.length === 0;
 
         if (isDbEmpty) {
           console.log('Firebase is empty. Seeding with local/mock data...');
@@ -98,25 +104,29 @@ export default function App() {
             hoatDong: activities,
             minhChung: proofs,
             users: users,
-            truongHoc: truongHoc
+            truongHoc: truongHoc,
+            baiViet: posts
           });
           prevMembersRef.current = [...members];
           prevActivitiesRef.current = [...activities];
           prevProofsRef.current = [...proofs];
           prevUsersRef.current = [...users];
           prevTruongHocRef.current = [...truongHoc];
+          prevPostsRef.current = [...posts];
         } else {
           setMembers(fsMembers);
           setActivities(fsActivities);
           setProofs(fsProofs);
           setTruongHoc(fsTruongHoc);
           setUsers(fsUsers.length > 0 ? fsUsers : initialData.users);
+          setPosts(fsPosts.length > 0 ? fsPosts : initialData.baiViet || []);
 
           prevMembersRef.current = fsMembers;
           prevActivitiesRef.current = fsActivities;
           prevProofsRef.current = fsProofs;
           prevTruongHocRef.current = fsTruongHoc;
           prevUsersRef.current = fsUsers.length > 0 ? fsUsers : initialData.users;
+          prevPostsRef.current = fsPosts.length > 0 ? fsPosts : initialData.baiViet || [];
         }
       } catch (err) {
         console.error('Error connecting or seeding with Firebase:', err);
@@ -136,9 +146,10 @@ export default function App() {
       hoatDong: activities,
       minhChung: proofs,
       users: users,
-      truongHoc: truongHoc
+      truongHoc: truongHoc,
+      baiViet: posts
     });
-  }, [members, activities, proofs, users, truongHoc]);
+  }, [members, activities, proofs, users, truongHoc, posts]);
 
   // Firebase Delta Sync: DoanVien
   useEffect(() => {
@@ -285,6 +296,35 @@ export default function App() {
     prevTruongHocRef.current = [...truongHoc];
   }, [truongHoc, firebaseConnected]);
 
+  // Firebase Delta Sync: BaiViet
+  useEffect(() => {
+    if (isFirstLoad.current || !firebaseConnected) return;
+
+    const addedOrUpdated = posts.filter(item => {
+      const prev = prevPostsRef.current.find(p => p.id === item.id);
+      return !prev || JSON.stringify(prev) !== JSON.stringify(item);
+    });
+
+    const deleted = prevPostsRef.current.filter(prev => {
+      return !posts.some(item => item.id === prev.id);
+    });
+
+    if (addedOrUpdated.length > 0 || deleted.length > 0) {
+      setSyncing(true);
+      Promise.all([
+        ...addedOrUpdated.map(item => dbSaveBaiViet(item)),
+        ...deleted.map(item => dbDeleteBaiViet(item.id))
+      ])
+      .catch(err => {
+        console.error("Error syncing BaiViet:", err);
+        showNotification("Lỗi đồng bộ bài đăng lên cơ sở dữ liệu!", "error");
+      })
+      .finally(() => setSyncing(false));
+    }
+
+    prevPostsRef.current = [...posts];
+  }, [posts, firebaseConnected]);
+
   // Handle Log out
   const handleLogout = () => {
     setCurrentUser(null);
@@ -373,6 +413,7 @@ export default function App() {
               currentUser={currentUser}
               onGoToDashboard={() => setViewingMode('dashboard')}
               onLogout={handleLogout}
+              posts={posts}
             />
           </motion.div>
         ) : currentUser.role === 'admin' ? (
@@ -400,6 +441,8 @@ export default function App() {
               onShowNotification={showNotification}
               users={users}
               setUsers={setUsers}
+              posts={posts}
+              setPosts={setPosts}
             />
           </motion.div>
         ) : (
@@ -423,6 +466,8 @@ export default function App() {
               setProofs={setProofs}
               truongHoc={truongHoc}
               onShowNotification={showNotification}
+              posts={posts}
+              setPosts={setPosts}
             />
           </motion.div>
         )}

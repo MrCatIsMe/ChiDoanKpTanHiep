@@ -17,6 +17,7 @@ interface LandingPageProps {
   currentUser: User | null;
   onGoToDashboard: () => void;
   onLogout: () => void;
+  posts?: import('../types').BaiViet[];
 }
 
 export default function LandingPage({ 
@@ -26,9 +27,13 @@ export default function LandingPage({
   proofs,
   currentUser,
   onGoToDashboard,
-  onLogout
+  onLogout,
+  posts = []
 }: LandingPageProps) {
   
+  // Reading post modal state
+  const [readingPost, setReadingPost] = useState<import('../types').BaiViet | null>(null);
+
   // Leaderboard states
   const [selectedSchool, setSelectedSchool] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -84,19 +89,21 @@ export default function LandingPage({
                 Trang chủ
               </button>
               <button 
-                id="nav-about"
-                onClick={() => scrollToSection('gioi-thieu')} 
-                className="text-slate-600 hover:text-[#005691] transition-colors cursor-pointer"
-              >
-                Giới thiệu
-              </button>
-              <button 
                 id="nav-activities"
                 onClick={() => scrollToSection('hoat-dong')} 
                 className="text-slate-600 hover:text-[#005691] transition-colors cursor-pointer"
               >
                 Hoạt động hè
               </button>
+              {posts && posts.length > 0 && (
+                <button 
+                  id="nav-news"
+                  onClick={() => scrollToSection('tin-tuc')} 
+                  className="text-slate-600 hover:text-[#005691] transition-colors cursor-pointer"
+                >
+                  Bảng tin Đoàn
+                </button>
+              )}
               <button 
                 id="nav-leaderboard"
                 onClick={() => scrollToSection('xep-hang')} 
@@ -285,62 +292,7 @@ export default function LandingPage({
         </div>
       </section>
 
-      {/* CORE FEATURES */}
-      <section id="gioi-thieu" className="py-20 bg-white border-b border-slate-100 scroll-mt-10 relative">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto space-y-3.5 mb-16">
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#005691] bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 font-display">MÔ HÌNH TIỆN ÍCH CHUYÊN BIỆT</span>
-            <h4 className="text-2xl font-black text-slate-900 sm:text-3xl font-display">Giải pháp chuyển đổi số thông minh</h4>
-            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-medium">
-              Ứng dụng được thiết kế tối ưu hóa cho di động, giao diện thân thiện, dễ nộp minh chứng ngay tại hiện trường hoạt động tình nguyện hè.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            
-            <div className="group rounded-3xl border border-slate-100 bg-slate-50/50 p-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#005691] mb-5 group-hover:bg-[#005691] group-hover:text-white transition-colors duration-300 shadow-sm">
-                <Users className="h-5 w-5" />
-              </div>
-              <h5 className="font-bold text-sm text-slate-900 mb-2 font-display">Quản lý đoàn viên</h5>
-              <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                Sắp xếp và quản lý toàn diện thông tin học sinh khối 12 từ các trường THPT Chuyên Hùng Vương, Võ Minh Đức, Nguyễn An Ninh... một cách khoa học.
-              </p>
-            </div>
-
-            <div className="group rounded-3xl border border-slate-100 bg-slate-50/50 p-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 mb-5 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300 shadow-sm">
-                <Calendar className="h-5 w-5" />
-              </div>
-              <h5 className="font-bold text-sm text-slate-900 mb-2 font-display">Theo dõi hoạt động</h5>
-              <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                Cập nhật nhanh nhất thời gian, địa điểm, yêu cầu trang phục và điểm cộng tích lũy cho từng chiến dịch tình nguyện hè sôi động.
-              </p>
-            </div>
-
-            <div className="group rounded-3xl border border-slate-100 bg-slate-50/50 p-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 mb-5 group-hover:bg-amber-500 group-hover:text-white transition-colors duration-300 shadow-sm">
-                <Clock className="h-5 w-5" />
-              </div>
-              <h5 className="font-bold text-sm text-slate-900 mb-2 font-display">TimeMark Proof</h5>
-              <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                Cơ chế nộp ảnh kèm định vị GPS thực tế và mốc giờ chính xác tại địa bàn, đảm bảo sự trung thực và minh bạch tuyệt đối.
-              </p>
-            </div>
-
-            <div className="group rounded-3xl border border-slate-100 bg-slate-50/50 p-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 mb-5 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-300 shadow-sm">
-                <FileCheck className="h-5 w-5" />
-              </div>
-              <h5 className="font-bold text-sm text-slate-900 mb-2 font-display">Tổng hợp & Xếp loại</h5>
-              <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                Tự động kết xuất báo cáo rèn luyện rà soát cuối hè gửi về Ban giám hiệu các trường THPT để hoàn thiện học bạ, hồ sơ cá nhân.
-              </p>
-            </div>
-
-          </div>
-        </div>
-      </section>
 
       {/* HIGHLIGHTED ACTIVITIES */}
       <section id="hoat-dong" className="py-16 bg-slate-50 border-b border-slate-100 scroll-mt-10">
@@ -361,7 +313,7 @@ export default function LandingPage({
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {activities.map((act) => (
+            {activities.filter(act => act.hienThi !== false).map((act) => (
               <div 
                 id={`landing-act-card-${act.id}`}
                 key={act.id} 
@@ -426,8 +378,86 @@ export default function LandingPage({
         </div>
       </section>
 
+      {/* TIN TỨC & BẢNG TIN HOẠT ĐỘNG */}
+      {posts && posts.length > 0 && (
+        <section id="tin-tuc" className="py-16 bg-white border-b border-slate-100 scroll-mt-10">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+              <div className="space-y-3.5 max-w-2xl">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-[#005691]/10 px-3.5 py-1.5 text-xs font-bold text-[#005691] border border-[#005691]/10 shadow-sm font-display">
+                  <BookOpen className="h-4 w-4" />
+                  <span>BẢNG TIN CHI ĐOÀN</span>
+                </div>
+                <h4 className="text-2xl font-black text-slate-900 sm:text-3xl font-display">Tin tức & Thông báo mới nhất</h4>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-medium">
+                  Cập nhật liên tục các chủ trương, thông tin chiến dịch Hoa phượng đỏ, lịch sinh hoạt Đoàn và các tấm gương đoàn viên tiêu biểu xuất sắc rèn luyện hè.
+                </p>
+              </div>
+            </div>
+
+            {/* Posts Grid Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {posts.map(post => (
+                <div 
+                  key={post.id} 
+                  className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all duration-300 h-[400px] cursor-pointer group"
+                  onClick={() => {
+                    setReadingPost(post);
+                    // Increment local view count (visual only)
+                    post.luotXem = (post.luotXem || 0) + 1;
+                  }}
+                >
+                  <div className="h-44 w-full relative overflow-hidden bg-slate-100 shrink-0">
+                    <img 
+                      src={post.anh} 
+                      alt={post.tieude} 
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                    />
+                    {post.ghim && (
+                      <span className="absolute top-3.5 left-3.5 rounded-full bg-red-600 px-3 py-1 text-[9px] font-black text-white uppercase tracking-wider animate-pulse shadow-md">
+                        📌 Ghim quan trọng
+                      </span>
+                    )}
+                    <span className="absolute bottom-3.5 right-3.5 rounded-full bg-slate-900/75 backdrop-blur-md px-2.5 py-0.5 text-[9px] font-bold text-white uppercase">
+                      {post.nguoiDang}
+                    </span>
+                  </div>
+
+                  <div className="p-5 flex flex-col flex-1 min-h-0">
+                    <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold mb-2 shrink-0">
+                      <span className="flex items-center gap-1 font-mono">
+                        <Clock className="h-3.5 w-3.5" />
+                        {post.ngayDang}
+                      </span>
+                      <span className="flex items-center gap-1 font-mono">
+                        <Users className="h-3.5 w-3.5" />
+                        {post.luotXem || 0} lượt xem
+                      </span>
+                    </div>
+
+                    <h5 className="text-sm font-extrabold text-slate-900 line-clamp-2 mb-2 leading-snug group-hover:text-[#005691] transition-colors shrink-0">
+                      {post.tieude}
+                    </h5>
+
+                    <p className="text-xs text-slate-500 line-clamp-4 leading-relaxed flex-1 font-medium overflow-hidden">
+                      {post.tomtat}
+                    </p>
+
+                    <div className="flex items-center gap-1.5 text-xs font-black text-[#005691] mt-4 pt-4 border-t border-slate-50 shrink-0 group-hover:gap-2.5 transition-all">
+                      <span>Đọc tiếp bài viết</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* LEADERBOARD SECTION WITH SPECTACULAR BENTO DESIGN */}
-      <section id="xep-hang" className="py-20 bg-white border-b border-slate-100 scroll-mt-10">
+      <section id="xep-hang" className="py-20 bg-slate-50 border-b border-slate-100 scroll-mt-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto space-y-3.5 mb-12">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50/80 px-3.5 py-1.5 text-xs font-bold text-amber-700 border border-amber-100 shadow-sm font-display">
@@ -780,11 +810,6 @@ export default function LandingPage({
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => scrollToSection('gioi-thieu')} className="hover:text-white transition-colors cursor-pointer">
-                    Mô hình hoạt động
-                  </button>
-                </li>
-                <li>
                   <button onClick={() => scrollToSection('hoat-dong')} className="hover:text-white transition-colors cursor-pointer">
                     Hoạt động tình nguyện
                   </button>
@@ -826,6 +851,106 @@ export default function LandingPage({
           </div>
         </div>
       </footer>
+
+      {/* READING POST DETAIL DIALOG MODAL */}
+      {readingPost && (
+        <div 
+          id="post-viewer-modal-overlay" 
+          onClick={() => setReadingPost(null)}
+          className="fixed inset-0 z-50 flex justify-center items-start overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm cursor-pointer sm:items-center"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-3xl rounded-3xl bg-white shadow-2xl border border-slate-100 overflow-hidden cursor-default my-8 flex flex-col max-h-[85vh]"
+          >
+            {/* Header image banner */}
+            <div className="h-64 w-full relative bg-slate-100 shrink-0">
+              <img 
+                src={readingPost.anh} 
+                alt={readingPost.tieude} 
+                className="h-full w-full object-cover" 
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent"></div>
+              
+              <button
+                id="close-post-viewer-btn"
+                onClick={() => setReadingPost(null)}
+                type="button"
+                className="absolute top-4 right-4 h-8 w-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white text-sm font-black transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-md border border-white/10 z-10"
+                title="Đóng bài viết"
+              >
+                ✕
+              </button>
+
+              {/* Title inside image banner at bottom overlay */}
+              <div className="absolute bottom-0 inset-x-0 p-6 text-white space-y-2">
+                <div className="flex flex-wrap items-center gap-3.5 text-[10px] font-black text-blue-200">
+                  {readingPost.ghim && (
+                    <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-white animate-pulse">
+                      GHIM QUAN TRỌNG
+                    </span>
+                  )}
+                  <span className="bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-white uppercase tracking-wider">
+                    {readingPost.nguoiDang}
+                  </span>
+                  <span className="font-mono flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    {readingPost.ngayDang}
+                  </span>
+                  <span className="font-mono flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5" />
+                    {readingPost.luotXem || 0} lượt xem
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg md:text-xl font-black leading-snug tracking-tight drop-shadow">
+                  {readingPost.tieude}
+                </h3>
+              </div>
+            </div>
+
+            {/* Scrollable post text content with styled formatting */}
+            <div className="p-6 md:p-8 overflow-y-auto flex-1 text-slate-700 leading-relaxed text-xs sm:text-sm font-medium space-y-4 prose max-w-none">
+              {/* If tomtat exists and is different from content, show it as lead paragraph */}
+              {readingPost.tomtat && readingPost.tomtat.length > 5 && (
+                <p className="text-slate-800 font-extrabold border-l-4 border-[#005691] pl-3.5 py-1.5 bg-slate-50 rounded-r-lg leading-relaxed">
+                  {readingPost.tomtat}
+                </p>
+              )}
+              
+              {/* Formatted body paragraph splits */}
+              <div className="whitespace-pre-wrap leading-relaxed space-y-4">
+                {readingPost.noidung.split('\n\n').map((paragraph, i) => {
+                  if (paragraph.trim().startsWith('- ') || paragraph.trim().startsWith('* ')) {
+                    return (
+                      <ul key={i} className="list-disc pl-5 space-y-1 my-2">
+                        {paragraph.split('\n').map((li, j) => (
+                          <li key={j} className="text-slate-600 font-medium">{li.trim().replace(/^[-*]\s+/, '')}</li>
+                        ))}
+                      </ul>
+                    );
+                  }
+                  return (
+                    <p key={i} className="text-slate-600 leading-relaxed font-medium">
+                      {paragraph}
+                    </p>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer action */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+              <button
+                onClick={() => setReadingPost(null)}
+                className="rounded-xl bg-[#005691] hover:bg-[#004270] text-white px-5 py-2 text-xs font-bold transition-all shadow-sm cursor-pointer"
+              >
+                Đóng cửa sổ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
