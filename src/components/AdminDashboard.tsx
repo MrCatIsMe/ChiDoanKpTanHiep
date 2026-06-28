@@ -2236,15 +2236,22 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                               </span>
                             </td>
                             <td className="p-4 whitespace-nowrap text-center">
-                              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                                p.status === 'Đã duyệt'
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                  : p.status === 'Không đạt'
-                                  ? 'bg-red-50 text-red-700 border border-red-100'
-                                  : 'bg-amber-50 text-amber-700 border border-amber-100 animate-pulse'
-                              }`}>
-                                {p.status}
-                              </span>
+                              <div className="flex flex-col items-center gap-1">
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                                  p.status === 'Đã duyệt'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                    : p.status === 'Không đạt'
+                                    ? 'bg-red-50 text-red-700 border border-red-100'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-100 animate-pulse'
+                                }`}>
+                                  {p.status}
+                                </span>
+                                {p.rejectedReason && (
+                                  <span className="text-[9px] text-slate-500 italic max-w-[120px] truncate" title={p.rejectedReason}>
+                                    {p.status === 'Đã duyệt' ? 'Ghi chú: ' : 'Lý do: '}"{p.rejectedReason}"
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="p-4 whitespace-nowrap text-center">
                               <div className="flex items-center justify-center gap-1.5">
@@ -3421,11 +3428,9 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                     <p className={`font-bold uppercase ${reviewingProof.status === 'Đã duyệt' ? 'text-emerald-600' : 'text-red-500'}`}>
                       Trạng thái: {reviewingProof.status}
                     </p>
-                    {reviewingProof.rejectedReason && (
-                      <p className={`italic mt-1 font-medium ${reviewingProof.status === 'Đã duyệt' ? 'text-emerald-600' : 'text-red-500'}`}>
-                        {reviewingProof.status === 'Đã duyệt' ? 'Ghi chú duyệt: ' : 'Lý do từ chối: '}"{reviewingProof.rejectedReason}"
-                      </p>
-                    )}
+                    <p className={`italic mt-1 font-medium ${reviewingProof.status === 'Đã duyệt' ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {reviewingProof.status === 'Đã duyệt' ? 'Ghi chú duyệt: ' : 'Lý do từ chối: '}"{reviewingProof.rejectedReason || 'Không có ghi chú/lý do cụ thể'}"
+                    </p>
                   </div>
                 )}
                 
