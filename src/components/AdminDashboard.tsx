@@ -296,6 +296,7 @@ export default function AdminDashboard({
   // Search & Filter state for Members
   const [memberSearch, setMemberSearch] = useState('');
   const [memberFilterSchool, setMemberFilterSchool] = useState('All');
+  const [memberFilterChiDoan, setMemberFilterChiDoan] = useState('All');
   
   // Search state for Activities
   const [activitySearch, setActivitySearch] = useState('');
@@ -1186,9 +1187,10 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                           m.maDoanVien.toLowerCase().includes(memberSearch.toLowerCase()) ||
                           m.email.toLowerCase().includes(memberSearch.toLowerCase());
       const matchSchool = memberFilterSchool === 'All' || m.truong === memberFilterSchool;
-      return matchSearch && matchSchool;
+      const matchChiDoan = memberFilterChiDoan === 'All' || m.chiDoan === memberFilterChiDoan;
+      return matchSearch && matchSchool && matchChiDoan;
     });
-  }, [members, memberSearch, memberFilterSchool]);
+  }, [members, memberSearch, memberFilterSchool, memberFilterChiDoan]);
 
   // Filtered activities list
   const filteredActivities = useMemo(() => {
@@ -1939,6 +1941,20 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                   <option value="All">Tất cả các Trường THPT ({activeSchoolsList.length})</option>
                   {activeSchoolsList.map(s => (
                     <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <select
+                  id="member-filter-chidoan"
+                  value={memberFilterChiDoan}
+                  onChange={(e) => setMemberFilterChiDoan(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs text-slate-800 focus:border-[#005691] focus:outline-none transition-colors"
+                >
+                  <option value="All">Tất cả Chi Đoàn ({CHI_DOAN_LIST.length})</option>
+                  {CHI_DOAN_LIST.map(c => (
+                    <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
               </div>

@@ -9,7 +9,9 @@ export const TRUONG_LIST = [
 ];
 
 export const CHI_DOAN_LIST = [
-  'Chi đoàn Khu phố Tân Hiệp'
+  'Chi đoàn Khu phố Tân Hiệp',
+  'Chi đoàn Khu phố Tân Hiệp 1',
+  'Chi đoàn Khu phố Tân Hiệp 2'
 ];
 
 const INITIAL_DOAN_VIEN: DoanVien[] = [];
