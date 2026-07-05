@@ -599,12 +599,12 @@ export default function AdminDashboard({
     if (!attendanceModalActivity) return null;
 
     const act = attendanceModalActivity;
-    const approvedProofs = proofs.filter(p => p.hoatDongId === act.id && p.status === 'Đã duyệt');
+    const approvedProofs = displayProofs.filter(p => p.hoatDongId.trim() === act.id.trim() && p.status === 'Đã duyệt');
     
-    const joinedMembers = members.filter(m => approvedProofs.some(p => p.doanVienId === m.id));
-    const absentMembers = members.filter(m => !approvedProofs.some(p => p.doanVienId === m.id));
+    const joinedMembers = displayMembers.filter(m => approvedProofs.some(p => p.doanVienId.trim() === m.id.trim()));
+    const absentMembers = displayMembers.filter(m => !approvedProofs.some(p => p.doanVienId.trim() === m.id.trim()));
 
-    const totalCount = members.length;
+    const totalCount = displayMembers.length;
     const joinedCount = joinedMembers.length;
     const absentCount = absentMembers.length;
     const rate = totalCount > 0 ? Math.round((joinedCount / totalCount) * 100) : 0;
@@ -731,7 +731,7 @@ export default function AdminDashboard({
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {activeList.map((m, idx) => {
-                      const proof = approvedProofs.find(p => p.doanVienId === m.id);
+                      const proof = approvedProofs.find(p => p.doanVienId.trim() === m.id.trim());
                       
                       return (
                         <tr key={m.id} className="hover:bg-slate-50/40 transition-colors">
@@ -880,16 +880,16 @@ export default function AdminDashboard({
   // Approve Proof
   const handleApproveProof = (proofId: string) => {
     const proof = proofs.find(p => p.id === proofId);
-    if (!proof) return;
+    if (!proof) {
+      onShowNotification('Không tìm thấy minh chứng để phê duyệt!', 'error');
+      return;
+    }
 
-    // Find the student and add points
-    const student = members.find(m => m.id === proof.doanVienId);
-    const activity = activities.find(a => a.id === proof.hoatDongId);
+    // Find the student and activity with trimmed comparison to avoid whitespace issues
+    const student = members.find(m => m.id.trim() === proof.doanVienId.trim());
+    const activity = activities.find(a => a.id.trim() === proof.hoatDongId.trim());
     
-    if (student && activity) {
-      // Award points
-      setMembers(prev => prev.map(m => m.id === student.id ? { ...m, diemTichLuy: m.diemTichLuy + activity.diemCong } : m));
-      // Update proof status
+    const updateProofStatusOnly = () => {
       setProofs(prev => prev.map(p => p.id === proofId ? { 
         ...p, 
         status: 'Đã duyệt', 
@@ -897,10 +897,38 @@ export default function AdminDashboard({
         approvedAt: new Date().toISOString().replace('T', ' ').substring(0, 16) 
       } : p));
       
-      onShowNotification(`Đã duyệt minh chứng. Cộng ${activity.diemCong} điểm cho đoàn viên ${student.hoTen}`, 'success');
+      onShowNotification(`Đã duyệt minh chứng thành công! (Không cộng điểm rèn luyện vì thiếu thông tin liên kết)`, 'success');
       setReviewingProof(null);
       setRejectReason('');
+    };
+
+    if (!student) {
+      if (window.confirm('Không tìm thấy thông tin Đoàn viên tương ứng trong hệ thống (có thể tài khoản đã bị xóa). Bạn có muốn phê duyệt minh chứng này mà không cộng điểm rèn luyện không?')) {
+        updateProofStatusOnly();
+      }
+      return;
     }
+
+    if (!activity) {
+      if (window.confirm('Không tìm thấy Hoạt động hè tương ứng trong hệ thống (có thể hoạt động đã bị xóa). Bạn có muốn phê duyệt minh chứng này mà không cộng điểm rèn luyện không?')) {
+        updateProofStatusOnly();
+      }
+      return;
+    }
+
+    // Both student and activity exist, award points and approve proof
+    setMembers(prev => prev.map(m => m.id.trim() === student.id.trim() ? { ...m, diemTichLuy: m.diemTichLuy + activity.diemCong } : m));
+    
+    setProofs(prev => prev.map(p => p.id === proofId ? { 
+      ...p, 
+      status: 'Đã duyệt', 
+      rejectedReason: rejectReason.trim() || undefined,
+      approvedAt: new Date().toISOString().replace('T', ' ').substring(0, 16) 
+    } : p));
+    
+    onShowNotification(`Đã duyệt minh chứng. Cộng ${activity.diemCong} điểm cho đoàn viên ${student.hoTen}`, 'success');
+    setReviewingProof(null);
+    setRejectReason('');
   };
 
   // Reject Proof
@@ -930,9 +958,9 @@ export default function AdminDashboard({
       const wb = XLSX.utils.book_new();
 
       // Sheet 1: Danh sách Đoàn viên
-      const sortedMembers = [...members].sort((a,b) => b.diemTichLuy - a.diemTichLuy);
+      const sortedMembers = [...displayMembers].sort((a,b) => b.diemTichLuy - a.diemTichLuy);
       const membersData = sortedMembers.map((m, idx) => {
-        const approvedCount = proofs.filter(p => p.doanVienId === m.id && p.status === 'Đã duyệt').length;
+        const approvedCount = displayProofs.filter(p => p.doanVienId === m.id && p.status === 'Đã duyệt').length;
         
         let classification = 'Chưa hoàn thành';
         if (m.diemTichLuy >= 80) {
@@ -998,9 +1026,9 @@ export default function AdminDashboard({
       XLSX.utils.book_append_sheet(wb, wsAct, 'Hoat Dong Ren Luyen');
 
       // Sheet 3: Danh sách Minh chứng nộp
-      const proofsData = proofs.map(p => {
-        const member = members.find(m => m.id === p.doanVienId);
-        const activity = activities.find(a => a.id === p.hoatDongId);
+      const proofsData = displayProofs.map(p => {
+        const member = displayMembers.find(m => m.id.trim() === p.doanVienId.trim());
+        const activity = activities.find(a => a.id.trim() === p.hoatDongId.trim());
         return {
           'Mã Minh Chứng': p.id,
           'Đoàn Viên Nộp': member ? member.hoTen : 'Không rõ ID',
@@ -1149,15 +1177,33 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
     handleImportCSV(mockEvent);
   };
 
+  // Scoped members & proofs for managed branch admins (admin 1, admin 2)
+  const displayMembers = useMemo(() => {
+    if (currentUser.managedChiDoan) {
+      return members.filter(m => m.chiDoan === currentUser.managedChiDoan);
+    }
+    return members;
+  }, [members, currentUser.managedChiDoan]);
+
+  const displayProofs = useMemo(() => {
+    if (currentUser.managedChiDoan) {
+      return proofs.filter(p => {
+        const member = members.find(m => m.id.trim() === p.doanVienId.trim());
+        return member?.chiDoan === currentUser.managedChiDoan;
+      });
+    }
+    return proofs;
+  }, [proofs, members, currentUser.managedChiDoan]);
+
   // Computations for Analytics/Overview Tab
   const processedStats = useMemo(() => {
-    const total = members.length;
-    const active = members.filter(m => m.trangThai === 'Đang hoạt động').length;
+    const total = displayMembers.length;
+    const active = displayMembers.filter(m => m.trangThai === 'Đang hoạt động').length;
     
     // Count per school
     const schoolCounts: Record<string, number> = {};
     activeSchoolsList.forEach(s => { schoolCounts[s] = 0; });
-    members.forEach(m => {
+    displayMembers.forEach(m => {
       if (schoolCounts[m.truong] !== undefined) {
         schoolCounts[m.truong]++;
       } else {
@@ -1166,9 +1212,9 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
     });
 
     // Proof states
-    const pendingProofs = proofs.filter(p => p.status === 'Chờ duyệt');
-    const approvedProofs = proofs.filter(p => p.status === 'Đã duyệt');
-    const failedProofs = proofs.filter(p => p.status === 'Không đạt');
+    const pendingProofs = displayProofs.filter(p => p.status === 'Chờ duyệt');
+    const approvedProofs = displayProofs.filter(p => p.status === 'Đã duyệt');
+    const failedProofs = displayProofs.filter(p => p.status === 'Không đạt');
 
     return {
       total,
@@ -1178,11 +1224,11 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
       approvedCount: approvedProofs.length,
       failedCount: failedProofs.length,
     };
-  }, [members, proofs]);
+  }, [displayMembers, displayProofs]);
 
   // Filtered members list
   const filteredMembers = useMemo(() => {
-    return members.filter(m => {
+    return displayMembers.filter(m => {
       const matchSearch = m.hoTen.toLowerCase().includes(memberSearch.toLowerCase()) || 
                           m.maDoanVien.toLowerCase().includes(memberSearch.toLowerCase()) ||
                           m.email.toLowerCase().includes(memberSearch.toLowerCase());
@@ -1190,7 +1236,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
       const matchChiDoan = memberFilterChiDoan === 'All' || m.chiDoan === memberFilterChiDoan;
       return matchSearch && matchSchool && matchChiDoan;
     });
-  }, [members, memberSearch, memberFilterSchool, memberFilterChiDoan]);
+  }, [displayMembers, memberSearch, memberFilterSchool, memberFilterChiDoan]);
 
   // Filtered activities list
   const filteredActivities = useMemo(() => {
@@ -1284,8 +1330,10 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
 
             {/* Admin account info */}
             <div className="px-4 py-2.5 bg-slate-900/60 border-b border-slate-800/80 text-[11px] text-slate-400">
-              <p className="font-semibold text-slate-300">Bí Thư:</p>
-              <p className="truncate text-blue-300 font-mono mt-0.5">{currentUser.email}</p>
+              <p className="font-semibold text-slate-300">
+                {currentUser.managedChiDoan ? `Admin: ${currentUser.email.split('@')[0].toUpperCase()}` : 'Admin Tổng Tân Hiệp'}
+              </p>
+              <p className="truncate text-blue-300 font-mono mt-0.5">{currentUser.managedChiDoan || 'Toàn phường Tân Hiệp'}</p>
             </div>
 
             {/* Scrollable menu content */}
@@ -1317,7 +1365,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                   <span>Đoàn viên Khối 12</span>
                 </div>
                 <span className="px-1.5 py-0.2 text-[9px] rounded-full font-black bg-slate-800 text-slate-300">
-                  {members.length}
+                  {displayMembers.length}
                 </span>
               </button>
 
@@ -1450,8 +1498,10 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
 
         {/* Current Active Admin account info */}
         <div className="px-4 py-3 bg-slate-900/60 border-b border-slate-800/80 text-xs text-slate-400">
-          <p className="font-semibold text-slate-300">Bí Thư:</p>
-          <p className="truncate text-blue-300 font-mono mt-0.5">{currentUser.email}</p>
+          <p className="font-semibold text-slate-300">
+            {currentUser.managedChiDoan ? `Admin: ${currentUser.email.split('@')[0].toUpperCase()}` : 'Admin Tổng Tân Hiệp'}
+          </p>
+          <p className="truncate text-blue-300 font-mono mt-0.5">{currentUser.managedChiDoan || 'Toàn phường Tân Hiệp'}</p>
         </div>
 
         {/* Navigation Tabs */}
@@ -1479,7 +1529,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
               <span>Đoàn viên Khối 12</span>
             </div>
             <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-black ${activeTab === 'members' ? 'bg-white text-blue-900' : 'bg-slate-800 text-slate-300'}`}>
-              {members.length}
+              {displayMembers.length}
             </span>
           </button>
 
@@ -1755,15 +1805,15 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                         strokeWidth="10"
                         strokeDasharray={314}
                         strokeDashoffset={
-                          proofs.length === 0 
+                          displayProofs.length === 0 
                             ? 314 
-                            : 314 - (314 * (processedStats.approvedCount / proofs.length))
+                            : 314 - (314 * (processedStats.approvedCount / displayProofs.length))
                         }
                       />
                     </svg>
                     <div className="absolute flex flex-col items-center justify-center text-center">
                       <span className="text-xl font-black text-slate-800">
-                        {proofs.length === 0 ? 0 : Math.round((processedStats.approvedCount / proofs.length) * 100)}%
+                        {displayProofs.length === 0 ? 0 : Math.round((processedStats.approvedCount / displayProofs.length) * 100)}%
                       </span>
                       <span className="text-[9px] text-slate-400 font-semibold uppercase">Đạt chuẩn</span>
                     </div>
@@ -2359,16 +2409,16 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {proofs.length === 0 ? (
+                    {displayProofs.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="p-8 text-center text-slate-400">
                           Chưa có minh chứng nào được nộp.
                         </td>
                       </tr>
                     ) : (
-                      proofs.map(p => {
-                        const student = members.find(m => m.id === p.doanVienId);
-                        const act = activities.find(a => a.id === p.hoatDongId);
+                      displayProofs.map(p => {
+                        const student = members.find(m => m.id.trim() === p.doanVienId.trim());
+                        const act = activities.find(a => a.id.trim() === p.hoatDongId.trim());
                         
                         return (
                           <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
@@ -2540,9 +2590,9 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                 </div>
                 <div>
                   <p className="text-lg font-black text-slate-800">
-                    {proofs.length === 0 ? '100%' : `${Math.round((proofs.filter(p=>p.status!=='Chờ duyệt').length / proofs.length)*100)}%`}
+                    {displayProofs.length === 0 ? '100%' : `${Math.round((displayProofs.filter(p=>p.status!=='Chờ duyệt').length / displayProofs.length)*100)}%`}
                   </p>
-                  <p className="text-xs text-slate-500 font-semibold mt-0.5">Đã xử lý: {proofs.filter(p=>p.status!=='Chờ duyệt').length} / {proofs.length} minh chứng</p>
+                  <p className="text-xs text-slate-500 font-semibold mt-0.5">Đã xử lý: {displayProofs.filter(p=>p.status!=='Chờ duyệt').length} / {displayProofs.length} minh chứng</p>
                   <p className="text-[10px] text-slate-400 mt-2">Cần xử lý dứt điểm các ảnh chờ duyệt trước khi kết xuất học bạ.</p>
                 </div>
               </div>
@@ -2567,8 +2617,8 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {[...members].sort((a,b) => b.diemTichLuy - a.diemTichLuy).map((m, idx) => {
-                      const approvedCount = proofs.filter(p => p.doanVienId === m.id && p.status === 'Đã duyệt').length;
+                    {[...displayMembers].sort((a,b) => b.diemTichLuy - a.diemTichLuy).map((m, idx) => {
+                      const approvedCount = displayProofs.filter(p => p.doanVienId === m.id && p.status === 'Đã duyệt').length;
                       
                       let classification = 'Chưa hoàn thành';
                       let classColor = 'bg-slate-100 text-slate-600';
@@ -2670,7 +2720,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                 <div>
                   <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Đoàn viên học tập</p>
                   <p className="text-lg font-black text-slate-800">
-                    {members.filter(m => truongHoc.some(th => th.tenTruong === m.truong)).length} đoàn viên
+                    {displayMembers.filter(m => truongHoc.some(th => th.tenTruong === m.truong)).length} đoàn viên
                   </p>
                 </div>
               </div>
@@ -2681,7 +2731,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                 <div>
                   <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Trung bình đoàn viên</p>
                   <p className="text-lg font-black text-slate-800">
-                    {truongHoc.length > 0 ? (members.filter(m => truongHoc.some(th => th.tenTruong === m.truong)).length / truongHoc.length).toFixed(1) : 0} ĐV / Trường
+                    {truongHoc.length > 0 ? (displayMembers.filter(m => truongHoc.some(th => th.tenTruong === m.truong)).length / truongHoc.length).toFixed(1) : 0} ĐV / Trường
                   </p>
                 </div>
               </div>
@@ -2717,7 +2767,7 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
                   (th.moTa && th.moTa.toLowerCase().includes(truongHocSearch.toLowerCase()))
                 )
                 .map(th => {
-                  const schoolMembers = members.filter(m => m.truong === th.tenTruong);
+                  const schoolMembers = displayMembers.filter(m => m.truong === th.tenTruong);
                   const enrolledCount = schoolMembers.length;
                   const isExpanded = expandedSchoolId === th.id;
 
@@ -3679,8 +3729,8 @@ DV12993,Phạm Hoàng Nam,2008-07-18,Nam,0901239993,nam.ph@student.edu.vn,THPT N
 
                 {/* Submitting student profiles */}
                 {(() => {
-                  const student = members.find(m => m.id === reviewingProof.doanVienId);
-                  const act = activities.find(a => a.id === reviewingProof.hoatDongId);
+                  const student = members.find(m => m.id.trim() === reviewingProof.doanVienId.trim());
+                  const act = activities.find(a => a.id.trim() === reviewingProof.hoatDongId.trim());
                   
                   return (
                     <div className="space-y-3 text-xs">

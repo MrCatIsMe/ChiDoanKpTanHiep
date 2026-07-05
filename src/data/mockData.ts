@@ -25,6 +25,18 @@ const INITIAL_USERS: User[] = [
     id: 'u-admin',
     email: 'admin@doan.vn',
     role: 'admin'
+  },
+  {
+    id: 'u-admin1',
+    email: 'admin1@doan.vn',
+    role: 'admin',
+    managedChiDoan: 'Chi đoàn Khu phố Tân Hiệp 1'
+  },
+  {
+    id: 'u-admin2',
+    email: 'admin2@doan.vn',
+    role: 'admin',
+    managedChiDoan: 'Chi đoàn Khu phố Tân Hiệp 2'
   }
 ];
 

@@ -43,7 +43,7 @@ export default function MemberDashboard({
 
   // Current logged in member profile
   const currentMember = useMemo(() => {
-    return members.find(m => m.id === currentUser.doanVienId) || members[0];
+    return members.find(m => m.id.trim() === (currentUser.doanVienId || '').trim()) || members[0];
   }, [members, currentUser]);
 
   const activeSchools = useMemo(() => {
@@ -64,7 +64,7 @@ export default function MemberDashboard({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const selectedActivity = useMemo(() => {
-    return activities.find(a => a.id === submitActivityId);
+    return activities.find(a => a.id.trim() === submitActivityId.trim());
   }, [submitActivityId, activities]);
 
   const isSelectedActivityLocked = selectedActivity?.locked || false;
@@ -256,7 +256,7 @@ export default function MemberDashboard({
 
   // Student specific statistics
   const studentStats = useMemo(() => {
-    const studentProofs = proofs.filter(p => p.doanVienId === currentMember.id);
+    const studentProofs = proofs.filter(p => p.doanVienId.trim() === currentMember.id.trim());
     const approved = studentProofs.filter(p => p.status === 'Đã duyệt');
     const pending = studentProofs.filter(p => p.status === 'Chờ duyệt');
     const rejected = studentProofs.filter(p => p.status === 'Không đạt');
@@ -825,7 +825,7 @@ export default function MemberDashboard({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {activities.map(act => {
                 // Check if already submitted
-                const hasSubmission = proofs.find(p => p.doanVienId === currentMember.id && p.hoatDongId === act.id);
+                const hasSubmission = proofs.find(p => p.doanVienId.trim() === currentMember.id.trim() && p.hoatDongId.trim() === act.id.trim());
                 
                 return (
                   <div id={`member-act-card-${act.id}`} key={act.id} className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition-all">
@@ -1077,15 +1077,15 @@ export default function MemberDashboard({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {proofs.filter(p => p.doanVienId === currentMember.id).length === 0 ? (
+                    {proofs.filter(p => p.doanVienId.trim() === currentMember.id.trim()).length === 0 ? (
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-slate-400">
                           Bạn chưa gửi minh chứng nào lên hệ thống.
                         </td>
                       </tr>
                     ) : (
-                      proofs.filter(p => p.doanVienId === currentMember.id).map(p => {
-                        const act = activities.find(a => a.id === p.hoatDongId);
+                      proofs.filter(p => p.doanVienId.trim() === currentMember.id.trim()).map(p => {
+                        const act = activities.find(a => a.id.trim() === p.hoatDongId.trim());
                         
                         return (
                           <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">

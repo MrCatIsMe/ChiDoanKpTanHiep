@@ -60,6 +60,7 @@ export interface User {
   doanVienId?: string;
   password?: string;
   isLocked?: boolean;
+  managedChiDoan?: string;
 }
 
 export interface TruongHoc {

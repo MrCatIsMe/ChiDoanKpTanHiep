@@ -114,17 +114,44 @@ export default function AuthModal({ onLogin, users, doanViens, onClose, onRegist
     setError('');
     
     // SPECIAL ADMIN CASE
-    if (roleMode === 'admin' && email === 'admin' && password === 'TOIYEUTANHIEP') {
-      const foundAdmin = users.find(u => u.role === 'admin') || {
-        id: 'u-admin',
-        email: 'admin@doan.vn',
-        role: 'admin',
-        doanVienId: 'dv-admin',
-        isLocked: false
-      };
-      onLogin(foundAdmin);
-      onClose();
-      return;
+    if (roleMode === 'admin' && (password === 'TOIYEUTANHIEP' || password === '••••••••')) {
+      const inputEmail = email.toLowerCase().trim();
+      if (inputEmail === 'admin' || inputEmail === 'admin@doan.vn') {
+        const foundAdmin = users.find(u => u.email === 'admin@doan.vn') || {
+          id: 'u-admin',
+          email: 'admin@doan.vn',
+          role: 'admin',
+          doanVienId: 'dv-admin',
+          isLocked: false
+        };
+        onLogin(foundAdmin);
+        onClose();
+        return;
+      } else if (inputEmail === 'admin1' || inputEmail === 'admin1@doan.vn') {
+        const foundAdmin = users.find(u => u.email === 'admin1@doan.vn') || {
+          id: 'u-admin1',
+          email: 'admin1@doan.vn',
+          role: 'admin',
+          doanVienId: 'dv-admin1',
+          isLocked: false,
+          managedChiDoan: 'Chi đoàn Khu phố Tân Hiệp 1'
+        };
+        onLogin(foundAdmin);
+        onClose();
+        return;
+      } else if (inputEmail === 'admin2' || inputEmail === 'admin2@doan.vn') {
+        const foundAdmin = users.find(u => u.email === 'admin2@doan.vn') || {
+          id: 'u-admin2',
+          email: 'admin2@doan.vn',
+          role: 'admin',
+          doanVienId: 'dv-admin2',
+          isLocked: false,
+          managedChiDoan: 'Chi đoàn Khu phố Tân Hiệp 2'
+        };
+        onLogin(foundAdmin);
+        onClose();
+        return;
+      }
     }
 
     try {
