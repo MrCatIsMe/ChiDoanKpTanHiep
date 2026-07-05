@@ -56,6 +56,25 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
+// Clean undefined properties recursively for Firestore safety
+export function cleanData<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(cleanData) as unknown as T;
+  }
+  if (typeof obj === 'object') {
+    const cleaned = {} as any;
+    for (const key of Object.keys(obj)) {
+      const val = (obj as any)[key];
+      if (val !== undefined) {
+        cleaned[key] = cleanData(val);
+      }
+    }
+    return cleaned as T;
+  }
+  return obj;
+}
+
 // Test Connection
 export async function testConnection() {
   try {
@@ -95,7 +114,7 @@ export async function dbGetDoanVien(): Promise<DoanVien[]> {
 
 export async function dbSaveDoanVien(item: DoanVien): Promise<void> {
   try {
-    await setDoc(doc(db, COLL_DOAN_VIEN, item.id), item);
+    await setDoc(doc(db, COLL_DOAN_VIEN, item.id), cleanData(item));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${COLL_DOAN_VIEN}/${item.id}`);
   }
@@ -126,7 +145,7 @@ export async function dbGetHoatDong(): Promise<HoatDong[]> {
 
 export async function dbSaveHoatDong(item: HoatDong): Promise<void> {
   try {
-    await setDoc(doc(db, COLL_HOAT_DONG, item.id), item);
+    await setDoc(doc(db, COLL_HOAT_DONG, item.id), cleanData(item));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${COLL_HOAT_DONG}/${item.id}`);
   }
@@ -157,7 +176,7 @@ export async function dbGetMinhChung(): Promise<MinhChung[]> {
 
 export async function dbSaveMinhChung(item: MinhChung): Promise<void> {
   try {
-    await setDoc(doc(db, COLL_MINH_CHUNG, item.id), item);
+    await setDoc(doc(db, COLL_MINH_CHUNG, item.id), cleanData(item));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${COLL_MINH_CHUNG}/${item.id}`);
   }
@@ -188,7 +207,7 @@ export async function dbGetTruongHoc(): Promise<TruongHoc[]> {
 
 export async function dbSaveTruongHoc(item: TruongHoc): Promise<void> {
   try {
-    await setDoc(doc(db, COLL_TRUONG_HOC, item.id), item);
+    await setDoc(doc(db, COLL_TRUONG_HOC, item.id), cleanData(item));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${COLL_TRUONG_HOC}/${item.id}`);
   }
@@ -219,7 +238,7 @@ export async function dbGetUsers(): Promise<User[]> {
 
 export async function dbSaveUser(item: User): Promise<void> {
   try {
-    await setDoc(doc(db, COLL_USERS, item.id), item);
+    await setDoc(doc(db, COLL_USERS, item.id), cleanData(item));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${COLL_USERS}/${item.id}`);
   }
@@ -250,7 +269,7 @@ export async function dbGetBaiViet(): Promise<BaiViet[]> {
 
 export async function dbSaveBaiViet(item: BaiViet): Promise<void> {
   try {
-    await setDoc(doc(db, COLL_BAI_VIET, item.id), item);
+    await setDoc(doc(db, COLL_BAI_VIET, item.id), cleanData(item));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${COLL_BAI_VIET}/${item.id}`);
   }
@@ -320,7 +339,7 @@ export async function dbGetSettings(): Promise<{ attendanceLocked: boolean }> {
 
 export async function dbSaveSettings(settings: { attendanceLocked: boolean }): Promise<void> {
   try {
-    await setDoc(doc(db, 'settings', 'appSettings'), settings);
+    await setDoc(doc(db, 'settings', 'appSettings'), cleanData(settings));
   } catch (error) {
     console.error('Error saving settings to Firestore:', error);
   }
